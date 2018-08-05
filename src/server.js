@@ -200,12 +200,29 @@ class Server extends EventEmitter {
 			let helloworld = true;
 
 			const routes = [{
-				match: /^\/?history\/(\d+)\/(\d+)\/?$/,
+				match: /^\/?history\/(\d+)(?:\/(\d+))?\/?$/,
 				response: (from, to) => {
-					let date, name, path, chunk, output = [];
+					let date, path, chunk, output = [];
 
 					from = +from;
 					to = +to;
+
+					if (isNaN(from) && isNaN(to)) {
+						response.writeHead(400);
+						response.end('Missing interval');
+						return;
+					}
+
+					if (isNaN(to)) {
+						if (from > 60) {
+							response.writeHead(400);
+							response.end('Max look back is 60mins at once, please set a lower range');
+							return;
+						} else {
+							to = +new Date();
+							from = to - from * 60 * 1000;
+						}
+					}
 
 					if (from > to) {
 						response.writeHead(400);
@@ -267,7 +284,9 @@ class Server extends EventEmitter {
 				response: (arg) => {
 					const location = url.parse(arg);
 
-					console.log(`[server/cors] ${ip} fetching ${location.host} -> ${location.pathname}`);
+					if (request.method !== 'POST' && request.method !== 'GET') {
+						console.log(`[server/cors] invalid method ${request.method}`);
+					}
 
 					if ([
 						'api.kraken.com',
@@ -288,10 +307,12 @@ class Server extends EventEmitter {
 					} else {
 						helloworld = false;
 
-						axios.get(arg, {transformResponse: undefined})
+						console.log(`[server/cors] ${ip} fetching ${location.host} -> ${location.pathname}`);
+
+						axios[request.method.toLowerCase()](arg)
 							.then(_response => {
 								response.writeHead(200);
-								response.end(_response.data);
+								response.end(_response.data && typeof _response.data === 'object' ? JSON.stringify(_response.data) : _response.data);
 							})
 							.catch(error => {
 								console.log(error);
@@ -453,7 +474,6 @@ class Server extends EventEmitter {
 	backup(exit = false) {
 		if (!this.chunk.length) {
 			exit && process.exit();
-			
 			return;
 		}
 
