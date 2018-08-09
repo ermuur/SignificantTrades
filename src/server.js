@@ -60,6 +60,8 @@ class Server extends EventEmitter {
 		this.exchanges = this.options.exchanges;
 
 		this.queue = [];
+
+		this.notice = null;
 		this.usage = {};
 		this.stats = {
 			trades: 0,
@@ -77,6 +79,10 @@ class Server extends EventEmitter {
 
 				if (persistence.usage) {
 					this.usage = persistence.usage;
+				}
+
+				if (persistence.notice) {
+					this.notice = persistence.notice;
 				}
 			} catch (err) {
 				console.log(`[init/persistence] Failed to parse persistence.json\n\t`, err);
@@ -173,17 +179,13 @@ class Server extends EventEmitter {
 			const usage = this.getUsage(ip);
 
 			this.stats.hits++;
-			this.stats.ips.push(ip);
 
-			ws.admin = this.isAdmin(ip);
+			if (this.stats.ips.indexOf(ip) === -1) {
+				this.stats.ips.push(ip);
+			}
 
-			console.log(`[${ip}/ws${ws.admin ? '/admin' : ''}] joined ${req.url} from ${req.headers['origin']}`, usage ? '(RL: ' + ((usage / this.options.maxUsage) * 100).toFixed() + '%)' : '');
-
-			this.emit('connections', this.wss.clients.size);
-
-			ws.send(JSON.stringify({
+			const data = {
 				type: 'welcome',
-				admin: ws.admin,
 				pair: this.options.pair,
 				timestamp: +new Date(),
 				exchanges: this.exchanges.map((exchange) => {
@@ -192,7 +194,22 @@ class Server extends EventEmitter {
 						connected: exchange.connected
 					}
 				})
-			}));
+			};
+
+			if (ws.admin = this.isAdmin(ip)) {
+				data.admin = true;
+			}
+
+			if (this.notice) {
+				console.log(this.notice);
+				data.notice = this.notice;
+			}
+
+			console.log(`[${ip}/ws${ws.admin ? '/admin' : ''}] joined ${req.url} from ${req.headers['origin']}`, usage ? '(RL: ' + ((usage / this.options.maxUsage) * 100).toFixed() + '%)' : '');
+
+			this.emit('connections', this.wss.clients.size);
+
+			ws.send(JSON.stringify(data));
 
 			ws.on('message', event => {
 				if (this.processing) {
@@ -560,6 +577,8 @@ class Server extends EventEmitter {
 		this.exchanges.forEach(exchange => {
 			exchange.disconnect();
 		});
+
+		this.queue = [];
 	}
 
 	action(method, fn) {
@@ -692,7 +711,8 @@ class Server extends EventEmitter {
 		return new Promise((resolve, reject) => {
 			fs.writeFile('persistence.json', JSON.stringify({
 				stats: this.stats,
-				usage: this.usage
+				usage: this.usage,
+				notice: this.notice
 			}), err => {
 				if (err) {
 					console.error(`[persistence] Failed to write persistence.json\n\t`, err);

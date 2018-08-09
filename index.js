@@ -1,5 +1,6 @@
 const fs = require('fs');
-const probe = require('pmx').probe();
+const pmx = require('pmx');
+const probe = pmx.probe();
 
 console.log('PID: ', process.pid);
 
@@ -56,6 +57,26 @@ if (process.env.pmx) {
 
 	server.on('connections', n => {
 		listeners.set(n);
+	});
+
+	pmx.action('notice', function(message, reply) {
+		if (message && message.trim().length) {
+			const alert = {
+				type: 'message',
+				message: message,
+				timestamp: +new Date()
+			};
+
+			server.broadcast(alert)
+
+			server.notice = alert;
+
+			reply(`Notice pinned "${message}"`);
+		} else if (server.notice) {
+			server.notice = null;
+
+			reply(`Notice deleted`);
+		}
 	});
 }
 
