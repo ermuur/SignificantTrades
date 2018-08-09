@@ -14,6 +14,7 @@ class Server extends EventEmitter {
 		this.connected = false;
 		this.processingAction = false;
 		this.chunk = [];
+		this.lockFetch = true;
 
 		this.options = Object.assign({
 
@@ -27,16 +28,25 @@ class Server extends EventEmitter {
 			delay: 0,
 
 			// restrict origin
-			origin: '*',
+			origin: '.*',
 
-			// profile exchange status interval
-			profilerInterval: 60000 * 3,
+			// max trades an ip can fetch in a period of time (see below)
+			maxUsage: 50000,
+
+			// usage period reset
+			usageResetInterval: 1000 * 60 * 15,
 
 			// do backup interval
-			backupInterval: 60000 * 10,
+			backupInterval: 1000 * 60 * 10,
 
 			// create backup file every X ms
 			backupTimeframe: 1000 * 60 * 60 * 24,
+
+			// admin access type (all, whitelist, none)
+			admin: 'all',
+
+			// enable websocket server
+			websocket: true,
 
 		}, options);
 
@@ -44,99 +54,64 @@ class Server extends EventEmitter {
 			throw new Error('You need to specify at least one exchange to track');
 		}
 
+		this.ADMIN_IPS = [];
+		this.BANNED_IPS = [];
+
 		this.exchanges = this.options.exchanges;
 
 		this.queue = [];
+		this.usage = {};
+		this.stats = {
+			trades: 0,
+			volume: 0,
+			hits: 0,
+			unique: 0,
+			ips: [],
+		}
+
+		if (fs.existsSync('./persistence.json')) {
+			try {
+				const persistence = JSON.parse(fs.readFileSync('./persistence.json', 'utf8'));
+
+				this.stats = Object.assign(this.stats, persistence.stats);
+
+				if (persistence.usage) {
+					this.usage = persistence.usage;
+				}
+			} catch (err) {
+				console.log(`[init/persistence] Failed to parse persistence.json\n\t`, err);
+			}
+		}
 
 		this.listen();
 		this.connect();
+
+		this.createWSServer();
+		this.createHTTPServer();
+
+		this.updateIpsInterval = setInterval(this.updateIps.bind(this), 1000);
+		this.cleanupUsageInterval = setInterval(this.cleanupUsage.bind(this), 1000 * 60 * 8);
+		this.updatePersistenceInterval = setInterval(this.updatePersistence.bind(this), 1000 * 60 * 9);
+		this.profilerInterval = setInterval(this.profiler.bind(this), 60000 * 3);
+		this.backupInterval = setInterval(this.updateDayTrades.bind(this), this.options.backupInterval);
+
+		setTimeout(() => {
+			console.log(`[server] Fetch API unlocked`);
+
+			this.lockFetch = false;
+		}, 1000 * 60);
 	}
 
 	listen() {
-		this.wss = new WebSocket.Server({
-			noServer: true
-		});
-
-		this.wss.on('connection', (ws, req) =>  {
-			const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-
-			ws.admin = this.isAdmin(ip);
-
-			console.log(`[client] ${ip} joined ${req.url}`);
-
-			this.emit('connections', this.wss.clients.size);
-
-			ws.send(JSON.stringify({
-				type: 'welcome',
-				admin: ws.admin,
-				pair: this.options.pair,
-				timestamp: +new Date(),
-				exchanges: this.exchanges.map((exchange) => {
-					return {
-						id: exchange.id,
-						connected: exchange.connected
-					}
-				})
-			}));
-
-			ws.on('message', event => {
-				if (this.processing) {
-					console.log(`[${ip}] message blocked due to current action`, event);
-				}
-
-				let method, message;
-
-				try {
-					const json = JSON.parse(event);
-
-					method = json.method;
-					message = json.message;
-				} catch (error) {
-					console.log(`[${ip}]`, 'invalid message', event);
-					return;
-				}
-
-				switch (method) {
-					case 'pair':
-						if (!ws.admin) {
-							return;
-						}
-
-						this.options.pair = message.toUpperCase();
-
-						console.log(`[${ip}] switching pair`, this.options.pair);
-
-						this.action(method, next => {
-							this.disconnect();
-
-							this.broadcast({
-								type: 'pair',
-								pair: this.options.pair,
-							})
-
-							setTimeout(() => {
-								this.connect();
-
-								next();
-							}, 5000);
-						})
-					break;
-					default:
-						console.log(`[${ip}] unrecognized method`, method);
-					break;
-				}
-			});
-
-			ws.on('close', event => {
-				setTimeout(() => this.emit('connections', this.wss.clients.size), 100);
-			});
-		});
-
 		this.exchanges.forEach(exchange => {
 			exchange.on('data', event => {
 				this.timestamps[event.exchange] = +new Date();
 
+				this.stats.trades += event.data.length;
+
 				for (let trade of event.data) {
+					this.stats.volume += trade[2];
+
 					trade.unshift(event.exchange);
 
 					this.chunk.push(trade);
@@ -182,26 +157,144 @@ class Server extends EventEmitter {
 				});
 			});
 		});
+	}
 
-		this.profilerInterval = setInterval(this.profiler.bind(this), this.options.profilerInterval);
-		this.backupInterval = setInterval(this.backup.bind(this), this.options.backupInterval);
+	createWSServer() {
+		if (!this.options.websocket) {
+			return;
+		}
+	
+		this.wss = new WebSocket.Server({
+			noServer: true
+		});
 
-		this.http = http.createServer((request, response) => {
-			response.setHeader('Access-Control-Allow-Origin', this.options.origin);
+		this.wss.on('connection', (ws, req) =>  {
+			const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 
-			let ip = request.headers['x-forwarded-for'] || request.connection.remoteAddress;
+			this.stats.hits++;
+			this.stats.ips.push(ip);
+
+			ws.admin = this.isAdmin(ip);
+
+			console.log(`[${ip}/ws] joined ${req.url}`, ws.admin ? '(admin)' : '');
+
+			this.emit('connections', this.wss.clients.size);
+
+			ws.send(JSON.stringify({
+				type: 'welcome',
+				admin: ws.admin,
+				pair: this.options.pair,
+				timestamp: +new Date(),
+				exchanges: this.exchanges.map((exchange) => {
+					return {
+						id: exchange.id,
+						connected: exchange.connected
+					}
+				})
+			}));
+
+			ws.on('message', event => {
+				if (this.processing) {
+					console.log(`[${ip}/cmd] message blocked due to current action`, event);
+				}
+
+				let method, message;
+
+				try {
+					const json = JSON.parse(event);
+
+					method = json.method;
+					message = json.message;
+				} catch (error) {
+					console.log(`[${ip}/cmd]`, 'invalid message', event);
+					return;
+				}
+
+				switch (method) {
+					case 'pair':
+						if (!ws.admin) {
+							return;
+						}
+
+						this.options.pair = message.toUpperCase();
+
+						console.log(`[${ip}/cmd] switching pair`, this.options.pair);
+
+						this.action(method, next => {
+							this.disconnect();
+
+							this.broadcast({
+								type: 'pair',
+								pair: this.options.pair,
+							})
+
+							setTimeout(() => {
+								this.connect();
+
+								next();
+							}, 5000);
+						})
+					break;
+					default:
+						console.log(`[${ip}/cmd] unrecognized method`, method);
+					break;
+				}
+			});
+
+			ws.on('close', event => {
+				setTimeout(() => this.emit('connections', this.wss.clients.size), 100);
+			});
+		});
+	}
+
+	createHTTPServer() {
+		this.http = http.createServer((req, response) => {
+			response.setHeader('Access-Control-Allow-Origin', '*');
+
+			let ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 
 			if (ip.indexOf('::ffff:') === 0) {
 				ip = ip.substr('::ffff:'.length, ip.length);
 			}
 
-			const path = url.parse(request.url).path;			
+			if (!new RegExp(this.options.origin).test(req.headers['origin'])) {
+				console.error(`[${ip}/BLOCKED] socket origin mismatch "${req.headers['origin']}"`);
+
+				setTimeout(function() {
+					response.end('Blocked origin');
+				}, 5000 + Math.random() * 5000);
+
+				return;
+			} else if (this.BANNED_IPS.indexOf(ip) !== -1) {
+				console.error(`[${ip}/BANNED] at "${req.url}" from "${req.headers['origin']}"`);
+
+				setTimeout(function() {
+					response.end();
+				}, 5000 + Math.random() * 5000);
+
+				return;
+			}
+
+			const usage = this.getUsage(ip);
+			const path = url.parse(req.url).path;			
 			
-			let helloworld = true;
+			let showHelloWorld = true;
 
 			const routes = [{
 				match: /^\/?history\/(\d+)(?:\/(\d+))?\/?$/,
 				response: (from, to) => {
+					if (this.lockFetch) {
+						showHelloWorld = false;
+
+						response.setHeader('Content-Type', 'application/json');
+						
+						setTimeout(function() {
+							response.end('[]');
+						}, Math.random() * 5000);
+
+						return;
+					}
+
 					let date, path, chunk, output = [];
 
 					from = +from;
@@ -236,7 +329,13 @@ class Server extends EventEmitter {
 						return;
 					}
 
-					console.log(`[server/history] requesting ${to - from}ms of trades`);
+					if (usage > this.options.maxUsage) {
+						response.setHeader('Content-Type', 'application/json');
+						response.end('[]');
+						return;
+					}
+
+					const ts = +new Date();
 
 					for (let i = +new Date(new Date(+from).setHours(0, 0, 0, 0)); i <= to; i += this.options.backupTimeframe) {
 						date = new Date(i);
@@ -246,11 +345,8 @@ class Server extends EventEmitter {
 							chunk = fs.readFileSync(path, 'utf8').trim().split("\n");
 
 							if (chunk[0].split(' ')[1] >= from && chunk[chunk.length - 1].split(' ')[1] <= to) {
-								console.log(`[server/history] append ${path} (ms ${i}) to output`, chunk.length);
-
 								output = output.concat(chunk.map(row => row.split(' ')));
 							} else {
-								console.log(`[server/history] unpacking ${path} (total ${chunk.length} trades)`);
 
 								for (let j = 0; j < chunk.length; j++) {
 									const trade = chunk[j].split(' ');
@@ -263,7 +359,7 @@ class Server extends EventEmitter {
 								}
 							}
 						} catch (error) {
-							console.log(`[server/history] unable to get ${path} (ms ${i})`, error.message);
+							// console.log(`[server/history] unable to get ${path} (ms ${i})\n\t`, error.message);
 						}
 					}
 
@@ -275,6 +371,10 @@ class Server extends EventEmitter {
 						output.push(this.chunk[i]);
 					}
 
+					console.log(`[${ip}] requesting ${this.getHms(to - from)} (${output.length} trades, took ${this.getHms(+new Date() - ts)}, consumed ${((usage / this.options.maxUsage) * 100).toFixed()}%)`);
+
+					this.logUsage(ip, output.length);
+
 					response.setHeader('Content-Type', 'application/json');
 					response.end(JSON.stringify(output));
 				}
@@ -284,8 +384,8 @@ class Server extends EventEmitter {
 				response: (arg) => {
 					const location = url.parse(arg);
 
-					if (request.method !== 'POST' && request.method !== 'GET') {
-						console.log(`[server/cors] invalid method ${request.method}`);
+					if (req.method !== 'POST' && req.method !== 'GET') {
+						console.log(`[${ip}/cors] cors request method invalid (${req.method})`);
 					}
 
 					if ([
@@ -303,13 +403,13 @@ class Server extends EventEmitter {
 						'www.bitmex.com',
 						'api.coinex.com',
 					].indexOf(location.hostname) === -1) {
-						console.log(`[server/cors] unknown host ${location.hostname}`);
+						console.log(`[${ip}/cors] unknown host ${location.hostname}`);
 					} else {
-						helloworld = false;
+						showHelloWorld = false;
 
-						console.log(`[server/cors] ${ip} fetching ${location.host} -> ${location.pathname}`);
+						console.log(`[${ip}/cors] ${location.host} -> ${location.pathname}`);
 
-						axios[request.method.toLowerCase()](arg)
+						axios[req.method.toLowerCase()](arg)
 							.then(_response => {
 								response.writeHead(200);
 								response.end(_response.data && typeof _response.data === 'object' ? JSON.stringify(_response.data) : _response.data);
@@ -330,7 +430,7 @@ class Server extends EventEmitter {
 				}
 			}
 
-			if (!response.finished && helloworld) {
+			if (!response.finished && showHelloWorld) {
 				response.writeHead(404);
 				response.end(`
 					<!DOCTYPE html>
@@ -349,18 +449,28 @@ class Server extends EventEmitter {
 			}
 		});
 
-		this.http.on('upgrade', (request, socket, head) => {
-			if (this.options.origin !== '*' && request.headers['origin'] !== this.options.origin) {
-				console.log(`[client] socket origin mismatch (${this.options.origin} !== ${request.headers['origin']})`)
+		this.http.on('upgrade', (req, socket, head) => {
+			const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+
+			if (!new RegExp(this.options.origin).test(req.headers['origin'])) {
+				// console.error(`[${ip}/BLOCKED] socket origin mismatch (${this.options.origin} !== ${req.headers['origin']})`);
+
+				socket.destroy();
+
+				return;
+			} else if (this.BANNED_IPS.indexOf(ip) !== -1) {
+				// console.error(`[${ip}/BANNED] at "${req.url}" from "${req.headers['origin']}"`);
 
 				socket.destroy();
 
 				return;
 			}
 
-			this.wss.handleUpgrade(request, socket, head, ws => {
-				this.wss.emit('connection', ws, request);
-			});
+			if (this.wss) {
+				this.wss.handleUpgrade(req, socket, head, ws => {
+					this.wss.emit('connection', ws, req);
+				});
+			}
 		});
 
 		this.http.listen(this.options.port, () => {
@@ -369,7 +479,7 @@ class Server extends EventEmitter {
 	}
 
 	connect() {
-		console.log('[server] connect exchange using pair', this.options.pair);
+		console.log('[server] listen', this.options.pair);
 
 		this.connected = true;
 		this.chunk = [];
@@ -392,6 +502,10 @@ class Server extends EventEmitter {
 	}
 
 	broadcast(data) {
+		if (!this.wss) {
+			return;
+		}
+
 		this.wss.clients.forEach(client => {
 			if (client.readyState === WebSocket.OPEN) {
 				client.send(JSON.stringify(data));
@@ -400,6 +514,8 @@ class Server extends EventEmitter {
 	}
 
 	disconnect() {
+		console.log('[server] disconnect exchanges');
+
 		clearInterval(this.delayInterval);
 
 		this.connected = false;
@@ -452,76 +568,191 @@ class Server extends EventEmitter {
 	}
 
 	isAdmin(ip) {
-		if (['localhost', '127.0.0.1', '::1'].indexOf(ip) !== -1) {
+		if (this.options.admin === 'all' || ['localhost', '127.0.0.1', '::1'].indexOf(ip) !== -1) {
 			return true;
 		}
 
-		const whitelistPath = '../admin.txt';
-
-		if (fs.existsSync(whitelistPath)) {
-			const file = fs.readFileSync(whitelistPath, 'utf8');
-
-			if (!file || !file.trim().length) {
-				return false;
-			}
-
-			return file.split("\n").indexOf(ip) !== -1;
+		if (this.options.admin !== 'whitelist') {
+			return false;
 		}
 
-		return false;
+		return this.ADMIN_IPS.indexOf(ip) !== -1;
 	}
 
-	backup(exit = false) {
-		if (!this.chunk.length) {
-			exit && process.exit();
-			return;
+	updateIps() {
+		const files = {
+			ADMIN_IPS: '../admin.txt',
+			BANNED_IPS: '../banned.txt'
 		}
 
-		console.log(`[server/backup] preparing to backup ${this.chunk.length} trades... (${this.options.backupInterval / 1000 + 's'} of data)`);
+		Object.keys(files).forEach(name => {
+			if (fs.existsSync(files[name])) {
+				const file = fs.readFileSync(files[name], 'utf8');
 
-		const processDate = (date) => {
-			const nextDateTimestamp = +date + this.options.backupTimeframe;
-			const path = this.getBackupFilename(date);
-
-			console.log(`[server/backup] retrieve trades < ${nextDateTimestamp}`);
-
-			let tradesOfTheDay = [];
-
-			for (let i = 0; i < this.chunk.length; i++) {
-				if (this.chunk[i][1] < nextDateTimestamp) {
-					tradesOfTheDay.push(this.chunk[i]);
-					this.chunk.splice(i, 1);
-					i--;
-				}
-			}
-
-			if (!tradesOfTheDay.length) {
-				console.log(`[server/backup] no trades that day, on to the next day (first timestamp: ${this.chunk[0][1]})`);
-				return processDate(new Date(nextDateTimestamp));
-			}
-
-			console.log(`[server/backup] write ${tradesOfTheDay.length} trades into ${path}`);
-
-			fs.appendFile(path, tradesOfTheDay.map(trade => trade.join(' ')).join("\n") + "\n", (err) => {
-				if (err) {
-					throw new Error(err);
+				if (!file || !file.trim().length) {
+					return false;
 				}
 
-				if (this.chunk.length && this.chunk[0][1] >= nextDateTimestamp) {
-					console.log(`[server/backup] next chunk start at ${this.chunk[0][1]}, next day at ${nextDateTimestamp}`);
+				this[name] = file.split("\n");
+			} else {
+				this[name] = [];
+			}
+		});
+	}
 
-					return processDate(new Date(nextDateTimestamp));
-				} else {
-					exit && process.exit();
+	cleanupUsage() {
+		const now = +new Date();
+		const ipQuotas = Object.keys(this.usage);
+
+		if (ipQuotas.length) {
+			ipQuotas.forEach(ip => {
+				if (this.usage[ip].timestamp + this.options.usageResetInterval < now) {
+					if (this.usage[ip].amount > this.options.maxUsage) {
+						console.log(`[${ip}] Usage cleared (${this.usage[ip].amount} -> 0)`);
+					}
+
+					delete this.usage[ip];
 				}
 			});
-		};
 
-		processDate(new Date(new Date(this.chunk[0][1]).setHours(0, 0, 0, 0)));
+			if (Object.keys(this.usage).length < ipQuotas.length) {
+				console.log(`[clean] ${Object.keys(this.usage).length} stored ip quotas`);
+			}
+		}
+
+		if (this.stats.ips) {
+			let clients = this.stats.ips;
+			let archived = 0;
+
+			if (fs.existsSync('./clients.txt')) {
+				clients = (fs.readFileSync('./clients.txt', 'utf8') || '')
+					.trim()
+					.split("\n")
+					.filter(a => a.length);
+
+				clients = clients
+					.concat(this.stats.ips)
+					.filter((a, i) => clients.indexOf(a) === i);
+
+				this.stats.unique = clients.length;
+			} else {
+				this.stats.unique = this.stats.ips.length;
+			}
+			
+			console.log(`[clean] wiped ${this.stats.ips.length} ips from memory`);
+
+			this.stats.ips = [];
+
+			fs.writeFile('clients.txt', clients.join("\n"), err => {
+				if (err) {
+					console.error(`[persistence] Failed to write clients.txt\n\t`, err);
+				}
+			});
+		}
+	}
+
+	updatePersistence() {
+		return new Promise((resolve, reject) => {
+			fs.writeFile('persistence.json', JSON.stringify({
+				stats: this.stats,
+				usage: this.usage
+			}), err => {
+				if (err) {
+					console.error(`[persistence] Failed to write persistence.json\n\t`, err);
+					return resolve(false);
+				}
+
+				return resolve(true);
+			});
+		});
+	}
+	
+	updateDayTrades(exit = false) {
+		return new Promise((resolve, reject) => {
+			if (!this.chunk.length) {
+				return resolve(true);
+			}
+			
+			console.log(`[server/backup] preparing to backup ${this.chunk.length} trades... (${this.getHms(this.options.backupInterval)} of data)`);
+
+			const processDate = (date) => {
+				const nextDateTimestamp = +date + this.options.backupTimeframe;
+				const path = this.getBackupFilename(date);
+
+				console.log(`[server/backup] retrieve trades < ${nextDateTimestamp}`);
+
+				let tradesOfTheDay = [];
+
+				for (let i = 0; i < this.chunk.length; i++) {
+					if (this.chunk[i][1] < nextDateTimestamp) {
+						tradesOfTheDay.push(this.chunk[i]);
+						this.chunk.splice(i, 1);
+						i--;
+					}
+				}
+
+				if (!tradesOfTheDay.length) {
+					console.log(`[server/backup] no trades that day, on to the next day (first timestamp: ${this.chunk[0][1]})`);
+					return processDate(new Date(nextDateTimestamp));
+				}
+
+				console.log(`[server/backup] write ${tradesOfTheDay.length} trades into ${path}`);
+
+				fs.appendFile(path, tradesOfTheDay.map(trade => trade.join(' ')).join("\n") + "\n", (err) => {
+					if (err) {
+						throw new Error(err);
+					}
+
+					if (this.chunk.length && this.chunk[0][1] >= nextDateTimestamp) {
+						console.log(`[server/backup] next chunk start at ${this.chunk[0][1]}, next day at ${nextDateTimestamp}`);
+
+						return processDate(new Date(nextDateTimestamp));
+					} else {
+						return resolve(true);
+					}
+				});
+			}
+
+			processDate(new Date(new Date(this.chunk[0][1]).setHours(0, 0, 0, 0)));
+		});
 	}
 
 	getBackupFilename(date) {
 		return 'data/' + (this.options.pair + '_' + date.getFullYear() + '-' + ('0' + (date.getMonth()+1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2));
+	}
+
+	getHms(d) {
+		var h = Math.floor(d / 1000 / 3600);
+		var m = Math.floor(d / 1000 % 3600 / 60);
+		var s = Math.floor(d / 1000 % 3600 % 60);
+		var output = '';
+
+		output += (h > 0 ? h + 'h' + (m ? ', ' : '') : "");
+		output += (m > 0 ? m + 'm' + (s ? ', ' : '') : "");
+		output += (s > 0 ? s + 's' : "");
+
+		if (!output.length || (d < 60 * 1000 && d > s * 1000)) 
+			output += (output.length ? ', ' : '') + (d - s * 1000) + 'ms';
+
+		return output.trim();
+	}
+
+	getUsage(ip) {
+		if (typeof this.usage[ip] === 'undefined') {
+			this.usage[ip] = {
+				timestamp: +new Date(),
+				amount: 0
+			}
+		}
+
+		return this.usage[ip].amount;
+	}
+
+	logUsage(ip, amount) {
+		if (typeof this.usage[ip] !== 'undefined') {
+			this.usage[ip].timestamp = +new Date();
+			this.usage[ip].amount += amount;
+		}
 	}
 
 }

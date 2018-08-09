@@ -1,4 +1,7 @@
 node_modules/
 config.json
+clients.txt
+banned.txt
+admin.txt
 data/*
 .DS_Store

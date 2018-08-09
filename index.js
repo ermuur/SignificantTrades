@@ -65,5 +65,13 @@ if (process.env.pmx) {
 process.on('SIGINT', function() {
 	console.log('SIGINT');
 
-	server.backup(true);
+	Promise.all([server.updatePersistence(), server.updateDayTrades()]).then(data => {
+		console.log('[server/exit] Goodbye')
+
+		process.exit();
+	}).catch(err => {
+		console.log(`[server/exit] Something went wrong when executing SIGINT script${err && err.message ? "\n\t" + err.message : ''}`);
+
+		process.exit();
+	})
 });
