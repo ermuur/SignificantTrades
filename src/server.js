@@ -31,10 +31,10 @@ class Server extends EventEmitter {
 			origin: '.*',
 
 			// max trades an ip can fetch in a period of time (see below)
-			maxUsage: 50000,
+			maxUsage: 1000000,
 
 			// usage period reset
-			usageResetInterval: 1000 * 60 * 15,
+			usageResetInterval: 1000 * 60 * 10,
 
 			// do backup interval
 			backupInterval: 1000 * 60 * 10,
@@ -42,8 +42,8 @@ class Server extends EventEmitter {
 			// create backup file every X ms
 			backupTimeframe: 1000 * 60 * 60 * 24,
 
-			// admin access type (all, whitelist, none)
-			admin: 'all',
+			// admin access type (whitelist, all, none)
+			admin: 'whitelist',
 
 			// enable websocket server
 			websocket: true,
@@ -89,10 +89,10 @@ class Server extends EventEmitter {
 		this.createWSServer();
 		this.createHTTPServer();
 
-		this.updateIpsInterval = setInterval(this.updateIps.bind(this), 1000);
-		this.cleanupUsageInterval = setInterval(this.cleanupUsage.bind(this), 1000 * 60 * 8);
-		this.updatePersistenceInterval = setInterval(this.updatePersistence.bind(this), 1000 * 60 * 9);
-		this.profilerInterval = setInterval(this.profiler.bind(this), 60000 * 3);
+		this.updateIpsInterval = setInterval(this.updateIps.bind(this), 1000 * 60);
+		this.cleanupUsageInterval = setInterval(this.cleanupUsage.bind(this), 1000 * 90);
+		this.updatePersistenceInterval = setInterval(this.updatePersistence.bind(this), 1000 * 60 * 7);
+		this.profilerInterval = setInterval(this.profiler.bind(this), 1000 * 60 * 3);
 		this.backupInterval = setInterval(this.updateDayTrades.bind(this), this.options.backupInterval);
 
 		setTimeout(() => {
@@ -163,20 +163,21 @@ class Server extends EventEmitter {
 		if (!this.options.websocket) {
 			return;
 		}
-	
+
 		this.wss = new WebSocket.Server({
 			noServer: true
 		});
 
 		this.wss.on('connection', (ws, req) =>  {
-			const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+			const ip = this.getIp(req);
+			const usage = this.getUsage(ip);
 
 			this.stats.hits++;
 			this.stats.ips.push(ip);
 
 			ws.admin = this.isAdmin(ip);
 
-			console.log(`[${ip}/ws] joined ${req.url}`, ws.admin ? '(admin)' : '');
+			console.log(`[${ip}/ws${ws.admin ? '/admin' : ''}] joined ${req.url} from ${req.headers['origin']}`, usage ? '(RL: ' + ((usage / this.options.maxUsage) * 100).toFixed() + '%)' : '');
 
 			this.emit('connections', this.wss.clients.size);
 
@@ -242,6 +243,48 @@ class Server extends EventEmitter {
 			});
 
 			ws.on('close', event => {
+				let error = null;
+
+				switch (event) {
+					case 1002:
+						error = 'Protocol Error';
+					break;
+					case 1003:
+						error = 'Unsupported Data';
+					break;
+					case 1007:
+						error = 'Invalid frame payload data';
+					break;
+					case 1008:
+						error = 'Policy Violation';
+					break;
+					case 1009:
+						error = 'Message too big';
+					break;
+					case 1010:
+						error = 'Missing Extension';
+					break;
+					case 1011:
+						error = 'Internal Error';
+					break;
+					case 1012:
+						error = 'Service Restart';
+					break;
+					case 1013:
+						error = 'Try Again Later';
+					break;
+					case 1014:
+						error = 'Bad Gateway';
+					break;
+					case 1015:
+						error = 'TLS Handshake';
+					break;
+				}
+
+				if (error) {
+					console.log(`[${ip}] unusual close "${error}"`);
+				}
+
 				setTimeout(() => this.emit('connections', this.wss.clients.size), 100);
 			});
 		});
@@ -251,17 +294,13 @@ class Server extends EventEmitter {
 		this.http = http.createServer((req, response) => {
 			response.setHeader('Access-Control-Allow-Origin', '*');
 
-			let ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-
-			if (ip.indexOf('::ffff:') === 0) {
-				ip = ip.substr('::ffff:'.length, ip.length);
-			}
+			const ip = this.getIp(req);
 
 			if (!new RegExp(this.options.origin).test(req.headers['origin'])) {
 				console.error(`[${ip}/BLOCKED] socket origin mismatch "${req.headers['origin']}"`);
 
 				setTimeout(function() {
-					response.end('Blocked origin');
+					response.end(JSON.stringify({error: 'Blocked origin'}));
 				}, 5000 + Math.random() * 5000);
 
 				return;
@@ -276,18 +315,18 @@ class Server extends EventEmitter {
 			}
 
 			const usage = this.getUsage(ip);
-			const path = url.parse(req.url).path;			
-			
+			const path = url.parse(req.url).path;
+
 			let showHelloWorld = true;
 
 			const routes = [{
 				match: /^\/?history\/(\d+)(?:\/(\d+))?\/?$/,
 				response: (from, to) => {
+					response.setHeader('Content-Type', 'application/json');
+
 					if (this.lockFetch) {
 						showHelloWorld = false;
 
-						response.setHeader('Content-Type', 'application/json');
-						
 						setTimeout(function() {
 							response.end('[]');
 						}, Math.random() * 5000);
@@ -302,14 +341,14 @@ class Server extends EventEmitter {
 
 					if (isNaN(from) && isNaN(to)) {
 						response.writeHead(400);
-						response.end('Missing interval');
+						response.end(JSON.stringify({error: 'Missing interval'}));
 						return;
 					}
 
 					if (isNaN(to)) {
 						if (from > 60) {
 							response.writeHead(400);
-							response.end('Max look back is 60mins at once, please set a lower range');
+							response.end(JSON.stringify({error: 'Max look back is 60mins at once, please set a lower range'}));
 							return;
 						} else {
 							to = +new Date();
@@ -319,18 +358,17 @@ class Server extends EventEmitter {
 
 					if (from > to) {
 						response.writeHead(400);
-						response.end('Invalid interval');
+						response.end(JSON.stringify({error: 'Invalid interval'}));
 						return;
 					}
 
-					if (to - from > this.options.backupTimeframe * 2) {
+					if (to - from > this.options.backupTimeframe * 1) {
 						response.writeHead(400);
-						response.end('Interval must be <= than 2 days');
+						response.end(JSON.stringify({error: 'Interval cannot exceed 1 day'}));
 						return;
 					}
 
-					if (usage > this.options.maxUsage) {
-						response.setHeader('Content-Type', 'application/json');
+					if (usage > this.options.maxUsage && to - from > 1000 * 60) {
 						response.end('[]');
 						return;
 					}
@@ -371,11 +409,10 @@ class Server extends EventEmitter {
 						output.push(this.chunk[i]);
 					}
 
-					console.log(`[${ip}] requesting ${this.getHms(to - from)} (${output.length} trades, took ${this.getHms(+new Date() - ts)}, consumed ${((usage / this.options.maxUsage) * 100).toFixed()}%)`);
+					console.log(`[${ip}] requesting ${this.getHms(to - from)} (${output.length} trades, took ${this.getHms(+new Date() - ts)}, consumed ${(((usage + output.length) / this.options.maxUsage) * 100).toFixed()}%)`);
 
 					this.logUsage(ip, output.length);
 
-					response.setHeader('Content-Type', 'application/json');
 					response.end(JSON.stringify(output));
 				}
 			},
@@ -450,7 +487,7 @@ class Server extends EventEmitter {
 		});
 
 		this.http.on('upgrade', (req, socket, head) => {
-			const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+			const ip = this.getIp(req);
 
 			if (!new RegExp(this.options.origin).test(req.headers['origin'])) {
 				// console.error(`[${ip}/BLOCKED] socket origin mismatch (${this.options.origin} !== ${req.headers['origin']})`);
@@ -557,11 +594,11 @@ class Server extends EventEmitter {
 
 			if (now - this.timestamps[exchange.id] > 1000 * 60 * 5) {
 				console.log('[warning] ' + exchange.id + ' hasn\'t sent any data since more than 5 minutes');
-				
+
 				delete this.timestamps[exchange.id];
-				
+
 				exchange.disconnect() && exchange.reconnect(this.options.pair);
-				
+
 				return;
 			}
 		})
@@ -616,10 +653,12 @@ class Server extends EventEmitter {
 			});
 
 			if (Object.keys(this.usage).length < ipQuotas.length) {
-				console.log(`[clean] ${Object.keys(this.usage).length} stored ip quotas`);
+				console.log(`[clean] deleted ${ipQuotas - Object.keys(this.usage).length} stored quota(s)`);
 			}
 		}
+	}
 
+	updatePersistence() {
 		if (this.stats.ips) {
 			let clients = this.stats.ips;
 			let archived = 0;
@@ -638,7 +677,7 @@ class Server extends EventEmitter {
 			} else {
 				this.stats.unique = this.stats.ips.length;
 			}
-			
+
 			console.log(`[clean] wiped ${this.stats.ips.length} ips from memory`);
 
 			this.stats.ips = [];
@@ -649,9 +688,7 @@ class Server extends EventEmitter {
 				}
 			});
 		}
-	}
 
-	updatePersistence() {
 		return new Promise((resolve, reject) => {
 			fs.writeFile('persistence.json', JSON.stringify({
 				stats: this.stats,
@@ -666,14 +703,18 @@ class Server extends EventEmitter {
 			});
 		});
 	}
-	
+
 	updateDayTrades(exit = false) {
 		return new Promise((resolve, reject) => {
 			if (!this.chunk.length) {
 				return resolve(true);
 			}
-			
+
 			console.log(`[server/backup] preparing to backup ${this.chunk.length} trades... (${this.getHms(this.options.backupInterval)} of data)`);
+
+			if (!fs.existsSync('./data')){
+				fs.mkdirSync('./data');
+			}
 
 			const processDate = (date) => {
 				const nextDateTimestamp = +date + this.options.backupTimeframe;
@@ -731,7 +772,7 @@ class Server extends EventEmitter {
 		output += (m > 0 ? m + 'm' + (s ? ', ' : '') : "");
 		output += (s > 0 ? s + 's' : "");
 
-		if (!output.length || (d < 60 * 1000 && d > s * 1000)) 
+		if (!output.length || (d < 60 * 1000 && d > s * 1000))
 			output += (output.length ? ', ' : '') + (d - s * 1000) + 'ms';
 
 		return output.trim();
@@ -750,9 +791,22 @@ class Server extends EventEmitter {
 
 	logUsage(ip, amount) {
 		if (typeof this.usage[ip] !== 'undefined') {
-			this.usage[ip].timestamp = +new Date();
+			if (this.usage[ip].amount < this.options.maxUsage) {
+				this.usage[ip].timestamp = +new Date();
+			}
+
 			this.usage[ip].amount += amount;
 		}
+	}
+
+	getIp(req) {
+		let ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+
+		if (ip.indexOf('::ffff:') === 0) {
+			ip = ip.substr('::ffff:'.length, ip.length);
+		}
+
+		return ip;
 	}
 
 }
