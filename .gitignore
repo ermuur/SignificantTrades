@@ -3,5 +3,6 @@ config.json
 clients.txt
 banned.txt
 admin.txt
+persistence.txt
 data/*
 .DS_Store
