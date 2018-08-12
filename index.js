@@ -51,12 +51,28 @@ const server = new Server(config);
 */
 
 if (process.env.pmx) {
-	const listeners = probe.metric({
-		name: 'Connections'
+	const currently_online = probe.metric({
+		name: 'Online'
+	});
+
+	const unique_visitors = probe.metric({
+		name: 'Unique'
+	});
+
+	const stored_quotas = probe.metric({
+		name: 'Quotas'
 	});
 
 	server.on('connections', n => {
-		listeners.set(n);
+		currently_online.set(n);
+	});
+
+	server.on('unique', n => {
+		unique_visitors.set(n);
+	});
+
+	server.on('quotas', n => {
+		stored_quotas.set(n);
 	});
 
 	pmx.action('notice', function(message, reply) {

@@ -30,8 +30,8 @@ class Server extends EventEmitter {
 			// restrict origin
 			origin: '.*',
 
-			// max trades an ip can fetch in a period of time (see below)
-			maxUsage: 1000000,
+			// max interval an ip can fetch in a period of time (default 1 day)
+			maxUsage: 1000 * 60 * 60 * 24,
 
 			// usage period reset
 			usageResetInterval: 1000 * 60 * 10,
@@ -201,7 +201,6 @@ class Server extends EventEmitter {
 			}
 
 			if (this.notice) {
-				console.log(this.notice);
 				data.notice = this.notice;
 			}
 
@@ -312,15 +311,21 @@ class Server extends EventEmitter {
 			response.setHeader('Access-Control-Allow-Origin', '*');
 
 			const ip = this.getIp(req);
+			const usage = this.getUsage(ip);
+			let path = url.parse(req.url).path;
 
 			if (!new RegExp(this.options.origin).test(req.headers['origin'])) {
 				console.error(`[${ip}/BLOCKED] socket origin mismatch "${req.headers['origin']}"`);
 
-				setTimeout(function() {
-					response.end(JSON.stringify({error: 'Blocked origin'}));
-				}, 5000 + Math.random() * 5000);
+				if (req.headers.accept.indexOf('json') > -1) {
+					setTimeout(function() {
+						response.end(JSON.stringify({error: 'naughty, naughty...'}));
+					}, 5000 + Math.random() * 5000);
 
-				return;
+					return;
+				} else {
+					path = null;
+				}
 			} else if (this.BANNED_IPS.indexOf(ip) !== -1) {
 				console.error(`[${ip}/BANNED] at "${req.url}" from "${req.headers['origin']}"`);
 
@@ -330,9 +335,6 @@ class Server extends EventEmitter {
 
 				return;
 			}
-
-			const usage = this.getUsage(ip);
-			const path = url.parse(req.url).path;
 
 			let showHelloWorld = true;
 
@@ -426,9 +428,11 @@ class Server extends EventEmitter {
 						output.push(this.chunk[i]);
 					}
 
-					console.log(`[${ip}] requesting ${this.getHms(to - from)} (${output.length} trades, took ${this.getHms(+new Date() - ts)}, consumed ${(((usage + output.length) / this.options.maxUsage) * 100).toFixed()}%)`);
+					if (to - from > 1000 * 60) {
+						console.log(`[${ip}] requesting ${this.getHms(to - from)} (${output.length} trades, took ${this.getHms(+new Date() - ts)}, consumed ${(((usage + to - from) / this.options.maxUsage) * 100).toFixed()}%)`);
+					}
 
-					this.logUsage(ip, output.length);
+					this.logUsage(ip, to - from);
 
 					response.end(JSON.stringify(output));
 				}
@@ -658,10 +662,12 @@ class Server extends EventEmitter {
 
 	cleanupUsage() {
 		const now = +new Date();
-		const ipQuotas = Object.keys(this.usage);
+		const storedQuotas = Object.keys(this.usage);
 
-		if (ipQuotas.length) {
-			ipQuotas.forEach(ip => {
+		let length = storedQuotas.length;
+
+		if (storedQuotas.length) {
+			storedQuotas.forEach(ip => {
 				if (this.usage[ip].timestamp + this.options.usageResetInterval < now) {
 					if (this.usage[ip].amount > this.options.maxUsage) {
 						console.log(`[${ip}] Usage cleared (${this.usage[ip].amount} -> 0)`);
@@ -671,10 +677,14 @@ class Server extends EventEmitter {
 				}
 			});
 
-			if (Object.keys(this.usage).length < ipQuotas.length) {
-				console.log(`[clean] deleted ${ipQuotas - Object.keys(this.usage).length} stored quota(s)`);
+			length = Object.keys(this.usage).length;
+
+			if (Object.keys(this.usage).length < storedQuotas.length) {
+				console.log(`[clean] deleted ${storedQuotas.length - Object.keys(this.usage).length} stored quota(s)`);
 			}
 		}
+
+		this.emit('quotas', length);
 	}
 
 	updatePersistence() {
@@ -689,8 +699,9 @@ class Server extends EventEmitter {
 					.filter(a => a.length);
 
 				clients = clients
-					.concat(this.stats.ips)
-					.filter((a, i) => clients.indexOf(a) === i);
+					.concat(this.stats.ips);
+					
+				clients = clients.filter((a, i) => clients.indexOf(a) === i);
 
 				this.stats.unique = clients.length;
 			} else {
@@ -698,6 +709,8 @@ class Server extends EventEmitter {
 			}
 
 			console.log(`[clean] wiped ${this.stats.ips.length} ips from memory`);
+
+			this.emit('unique', this.stats.unique);
 
 			this.stats.ips = [];
 
