@@ -76,7 +76,15 @@ if (process.env.pmx) {
 	});
 
 	pmx.action('notice', function(message, reply) {
-		if (message && message.trim().length) {
+		if (!message || typeof message !== 'string' || !message.trim().length) {
+			server.notice = null;
+
+			server.broadcast({
+				type: 'message'
+			});
+
+			reply(`Notice deleted`);
+		} else {
 			const alert = {
 				type: 'message',
 				message: message,
@@ -88,10 +96,6 @@ if (process.env.pmx) {
 			server.notice = alert;
 
 			reply(`Notice pinned "${message}"`);
-		} else if (server.notice) {
-			server.notice = null;
-
-			reply(`Notice deleted`);
 		}
 	});
 }
