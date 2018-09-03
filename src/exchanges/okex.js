@@ -16,7 +16,7 @@ class Okex extends Exchange {
 
         return this.pairs[pair].toLowerCase();
       }
-      
+
       return false;
     }
 
@@ -522,7 +522,7 @@ class Okex extends Exchange {
 	}
 
 	connect(pair) {
-    if (!super.connect(pair))  
+    if (!super.connect(pair))
       return;
 
     this.api = new WebSocket(this.getUrl());
@@ -535,7 +535,7 @@ class Okex extends Exchange {
       this.api.send(JSON.stringify({event: 'addChannel', channel: channel}));
 
       this.keepalive = setInterval(() => {
-        this.api.send(JSON.stringify({event: 'ping'}));
+        this.api.readyState === 1 && this.api.send(JSON.stringify({event: 'ping'}));
       }, 30000);
 
       this.emitOpen(event);
@@ -551,7 +551,7 @@ class Okex extends Exchange {
 	}
 
 	disconnect() {
-    if (!super.disconnect())  
+    if (!super.disconnect())
       return;
 
     clearInterval(this.keepalive);

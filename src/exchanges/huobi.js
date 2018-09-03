@@ -238,7 +238,7 @@ class Huobi extends Exchange {
 	}
 
 	connect(pair) {
-    if (!super.connect(pair))  
+    if (!super.connect(pair))
       return;
 
     this.api = new WebSocket(this.getUrl());
@@ -260,7 +260,7 @@ class Huobi extends Exchange {
 	}
 
 	disconnect() {
-    if (!super.disconnect())  
+    if (!super.disconnect())
       return;
 
     if (this.api && this.api.readyState < 2) {
@@ -276,7 +276,7 @@ class Huobi extends Exchange {
     }
 
     if (json.ping) {
-      this.api.send(JSON.stringify({pong: json.ping}));
+      this.api.readyState === 1 && this.api.send(JSON.stringify({pong: json.ping}));
       return;
     } else if (json.tick && json.tick.data && json.tick.data.length) {
       return json.tick.data.map(trade => [
