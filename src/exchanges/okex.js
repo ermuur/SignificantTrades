@@ -55,7 +55,7 @@ class Okex extends Exchange {
 			}));
 
 			this.keepalive = setInterval(() => {
-				this.api.send(JSON.stringify({ event: 'ping' }));
+				this.api.readyState === 1 && this.api.send(JSON.stringify({ event: 'ping' }));
 			}, 30000);
 
 			this.emitOpen(event);

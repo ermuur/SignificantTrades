@@ -33,7 +33,8 @@ class Bitstamp extends Exchange {
 			return;
 
 		this.api = new Pusher(this.options.appId);
-		const channel = this.api.subscribe(this.options.channel + (this.pair === 'btcusd' ? '' : '_' + this.pair));
+
+		this.api.subscribe(this.options.channel + (this.pair === 'btcusd' ? '' : '_' + this.pair));
 
 		this.api.bind(this.options.bind, trade => this.emitTrades(this.formatLiveTrades(trade)));
 
