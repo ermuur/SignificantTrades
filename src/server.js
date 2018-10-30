@@ -317,7 +317,7 @@ class Server extends EventEmitter {
 			if (!new RegExp(this.options.origin).test(req.headers['origin'])) {
 				console.error(`[${ip}/BLOCKED] socket origin mismatch "${req.headers['origin']}"`);
 
-				if (req.headers.accept.indexOf('json') > -1) {
+				if (req.headers.accept && req.headers.accept.indexOf('json') > -1) {
 					setTimeout(function() {
 						response.end(JSON.stringify({error: 'naughty, naughty...'}));
 					}, 5000 + Math.random() * 5000);
@@ -700,7 +700,7 @@ class Server extends EventEmitter {
 
 				clients = clients
 					.concat(this.stats.ips);
-					
+
 				clients = clients.filter((a, i) => clients.indexOf(a) === i);
 
 				this.stats.unique = clients.length;
