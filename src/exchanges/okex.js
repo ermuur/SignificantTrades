@@ -1,5 +1,6 @@
 const Exchange = require('../exchange');
 const WebSocket = require('ws');
+const pako = require('pako')
 
 class Okex extends Exchange {
 
@@ -526,6 +527,7 @@ class Okex extends Exchange {
       return;
 
     this.api = new WebSocket(this.getUrl());
+    this.api.binaryType = 'ArrayBuffer';
 
     this.api.on('message', event => this.emitData(this.format(event)));
 
@@ -564,7 +566,19 @@ class Okex extends Exchange {
 	}
 
 	format(event) {
-    const json = JSON.parse(event);
+    let json;
+    
+    try {
+      if (event instanceof String) {
+        json = JSON.parse(event);
+      } else {
+        json = JSON.parse(pako.inflateRaw(event, {to: 'string'}));
+      }
+    } catch (error) {
+      console.error(`[okex] failed to parse event data`, error);
+      return;
+    }
+
     const initial = typeof this.reference === 'undefined';
 
     if (!json || !json[0] || json[0].channel === 'addChannel') {
