@@ -392,92 +392,64 @@ class Server extends EventEmitter {
 						return;
 					}
 
-					const ts = +new Date();
+					const now = +new Date();
+					const names = [];
 
 					for (let i = +new Date(new Date(+from).setHours(0, 0, 0, 0)); i <= to; i += this.options.backupTimeframe) {
-						date = new Date(i);
-						path = this.getBackupFilename(date);
+						names.push(this.getBackupFilename(new Date(i)));
+					}
 
-						try {
-							chunk = fs.readFileSync(path, 'utf8').trim().split("\n");
+					if (!names.length) {
+						response.end('[]');
+						return;
+					}
 
-							if (chunk[0].split(' ')[1] >= from && chunk[chunk.length - 1].split(' ')[1] <= to) {
-								output = output.concat(chunk.map(row => row.split(' ')));
-							} else {
+					showHelloWorld = false;
 
-								for (let j = 0; j < chunk.length; j++) {
-									const trade = chunk[j].split(' ');
+					this.readFiles(names).then(files => {
+						for (let chunk of files) {
+							chunk = chunk.trim().split("\n")
 
-									if (trade[1] <= from || trade[1] >= to) {
-										continue;
+							try {
+								if (chunk[0].split(' ')[1] >= from && chunk[chunk.length - 1].split(' ')[1] <= to) {
+									output = output.concat(chunk.map(row => row.split(' ')));
+								} else {
+
+									for (let j = 0; j < chunk.length; j++) {
+										const trade = chunk[j].split(' ');
+
+										if (trade[1] <= from || trade[1] >= to) {
+											continue;
+										}
+
+										output.push(trade);
 									}
-
-									output.push(trade);
 								}
+							} catch (error) {
+								// console.log(`[server/history] unable to get ${path} (ms ${i})\n\t`, error.message);
 							}
-						} catch (error) {
-							// console.log(`[server/history] unable to get ${path} (ms ${i})\n\t`, error.message);
-						}
-					}
-
-					for (let i = 0; i < this.chunk.length; i++) {
-						if (this.chunk[i][1] <= from || this.chunk[i][1] >= to) {
-							continue;
 						}
 
-						output.push(this.chunk[i]);
-					}
+						for (let i = 0; i < this.chunk.length; i++) {
+							if (this.chunk[i][1] <= from || this.chunk[i][1] >= to) {
+								continue;
+							}
 
-					if (to - from > 1000 * 60) {
-						console.log(`[${ip}] requesting ${this.getHms(to - from)} (${output.length} trades, took ${this.getHms(+new Date() - ts)}, consumed ${(((usage + to - from) / this.options.maxUsage) * 100).toFixed()}%)`);
-					}
+							output.push(this.chunk[i]);
+						}
 
-					this.logUsage(ip, to - from);
+						if (to - from > 1000 * 60) {
+							console.log(`[${ip}] requesting ${this.getHms(to - from)} (${output.length} trades, took ${this.getHms(+new Date() - now)}, consumed ${(((usage + to - from) / this.options.maxUsage) * 100).toFixed()}%)`);
+						}
 
-					response.end(JSON.stringify(output));
-				}
-			},
-			{
-				match: /^\/?cors\/(.*)\/?$/,
-				response: (arg) => {
-					const location = url.parse(arg);
+						this.logUsage(ip, to - from);
 
-					if (req.method !== 'POST' && req.method !== 'GET') {
-						console.log(`[${ip}/cors] cors request method invalid (${req.method})`);
-					}
-
-					if ([
-						'api.kraken.com',
-						'api.binance.com',
-						'api.bitfinex.com',
-						'api.gdax.com',
-						'api.pro.coinbase.com',
-						'api.prime.coinbase.com',
-						'www.bitstamp.net',
-						'api.hitbtc.com',
-						'poloniex.com',
-						'www.okex.com',
-						'api.huobi.pro',
-						'www.bitmex.com',
-						'api.coinex.com',
-					].indexOf(location.hostname) === -1) {
-						console.log(`[${ip}/cors] unknown host ${location.hostname}`);
-					} else {
-						showHelloWorld = false;
-
-						console.log(`[${ip}/cors] ${location.host} -> ${location.pathname}`);
-
-						axios[req.method.toLowerCase()](arg)
-							.then(_response => {
-								response.writeHead(200);
-								response.end(_response.data && typeof _response.data === 'object' ? JSON.stringify(_response.data) : _response.data);
-							})
-							.catch(error => {
-								console.log(error);
-								response.writeHead(500);
-								response.end();
-							})
-					}
+						response.end(JSON.stringify(output));
+					})
+					.catch(error => {
+						console.log(`[server/history] error while parsing chunks data`, error.message);
+						response.end('[]');
+					})
 				}
 			}];
 
@@ -598,6 +570,19 @@ class Server extends EventEmitter {
 			console.log(`[${method}] done`);
 			this.processingAction = false;
 		});
+	}
+
+	readFiles(files) {
+		return Promise.all(files.map(file => {
+			return new Promise(function(resolve, reject) {
+				fs.readFile(file, 'utf8', function(err, data) {
+					if (err) 
+						reject(err); 
+					else 
+						resolve(data);
+				});
+			});
+		}));
 	}
 
 	profiler() {
@@ -737,7 +722,7 @@ class Server extends EventEmitter {
 		});
 	}
 
-	updateDayTrades(exit = false) {
+	updateDayTrades() {
 		return new Promise((resolve, reject) => {
 			if (!this.chunk.length) {
 				return resolve(true);
