@@ -237,7 +237,7 @@ const emitter = new Vue({
 
       this.reconnectionDelay *= 1.1;
     },
-    fetch(from, to = null, willReplace = false) {
+    fetch(from, to = null, willReplace = false, setRange = true) {
       if (!to) {
         to = +new Date();
         from = to - from * 1000 * 60;
@@ -286,7 +286,7 @@ const emitter = new Vue({
           }
 
           if (count !== this.trades.length) {
-            this.$emit('history', willReplace);
+            this.$emit('history', willReplace, setRange);
           }
 
           resolve(trades);

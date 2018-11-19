@@ -13,7 +13,7 @@
 <script>
   import socket from './services/socket';
   import options from './services/options';
-  
+
   import Alerts from './components/Alerts.vue';
   import Header from './components/Header.vue';
   import Settings from './components/Settings.vue';
@@ -96,7 +96,7 @@
             id: `fetch_error`,
             title: `Sorry, can't reach the server.`,
             message: `Please come back later.`,
-          });   
+          });
         })
     },
     methods: {

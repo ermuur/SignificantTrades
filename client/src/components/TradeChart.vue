@@ -389,13 +389,16 @@
         this.chart.redraw();
       },
 
-      onFetch(willReplace) {
+      onFetch(willReplace, setRange) {
         if (!this.chart || !socket.trades.length) {
           return;
         }
 
         if (willReplace) {
-          this.range = socket.trades[socket.trades.length - 1][1] - socket.trades[0][1];
+          if (setRange) {
+            this.range = socket.trades[socket.trades.length - 1][1] - socket.trades[0][1];
+          }
+
           this.toggleFollow(true);
         }
 
