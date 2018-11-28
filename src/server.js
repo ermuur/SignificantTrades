@@ -3,7 +3,8 @@ const WebSocket = require('ws');
 const url = require('url');
 const fs = require('fs');
 const http = require('http');
-const axios = require('axios');
+const getIp = require('./helper').getIp;
+const getHms = require('./helper').getHms;
 
 class Server extends EventEmitter {
 
@@ -12,9 +13,8 @@ class Server extends EventEmitter {
 
 		this.timestamps = {};
 		this.connected = false;
-		this.processingAction = false;
 		this.chunk = [];
-		this.lockFetch = true;
+		this.lockFetch = false;
 
 		this.options = Object.assign({
 
@@ -27,26 +27,32 @@ class Server extends EventEmitter {
 			// dont broadcast below ms interval
 			delay: 0,
 
-			// restrict origin
+			// restrict origin (now using regex)
 			origin: '.*',
 
-			// max interval an ip can fetch in a period of time (default 1 day)
-			maxUsage: 1000 * 60 * 60 * 24,
+			// max interval an ip can fetch in a limited amount of time (default 1 day)
+			maxFetchUsage: 1000 * 60 * 60 * 24,
 
-			// usage period reset
-			usageResetInterval: 1000 * 60 * 10,
+			// clear user usage after n ms of inactivity
+			fetchUsageResetInterval: 1000 * 60 * 10,
 
-			// do backup interval
-			backupInterval: 1000 * 60 * 10,
-
-			// create backup file every X ms
-			backupTimeframe: 1000 * 60 * 60 * 24,
+			// do backup every n ms
+			backupInterval: 1000 * 60,
 
 			// admin access type (whitelist, all, none)
 			admin: 'whitelist',
 
-			// enable websocket server
+			// enable websocket server on startup
 			websocket: true,
+
+			// storage solution, either 
+			// "none" (no storage, everything is wiped out after broadcast)
+			// "files" (daily .txt),
+			// "es" (bulk insert elasticsearch every options.backupInterval ms)
+			storage: 'files',
+
+			// elasticsearch server to use when storage is set to "es"
+			esUrl: 'localhost:9200',
 
 		}, options);
 
@@ -89,26 +95,66 @@ class Server extends EventEmitter {
 			}
 		}
 
-		this.listen();
-		this.connect();
+		this.initStorage().then(() => {
+			this.handleExchangesEvents();
+			this.connectExchanges();
 
-		this.createWSServer();
-		this.createHTTPServer();
+			this.createWSServer();
+			this.createHTTPServer();
 
-		this.updateIpsInterval = setInterval(this.updateIps.bind(this), 1000 * 60);
-		this.cleanupUsageInterval = setInterval(this.cleanupUsage.bind(this), 1000 * 90);
-		this.updatePersistenceInterval = setInterval(this.updatePersistence.bind(this), 1000 * 60 * 7);
-		this.profilerInterval = setInterval(this.profiler.bind(this), 1000 * 60 * 3);
-		this.backupInterval = setInterval(this.updateDayTrades.bind(this), this.options.backupInterval);
+			// update admin & banned ip
+			this.updateIpsInterval = setInterval(this.updateIps.bind(this), 1000 * 60);
 
-		setTimeout(() => {
-			console.log(`[server] Fetch API unlocked`);
+			// check user usages that are dues for a reset
+			this.cleanupUsageInterval = setInterval(this.cleanupUsage.bind(this), 1000 * 90);
 
-			this.lockFetch = false;
-		}, 1000 * 60);
+			// backup server persistence
+			this.updatePersistenceInterval = setInterval(this.updatePersistence.bind(this), 1000 * 60 * 7);
+
+			// profile exchanges connections (keep alive)
+			this.profilerInterval = setInterval(this.monitorExchangesActivity.bind(this), 1000 * 60 * 3);
+
+			if (this.storage) {
+				this.backupInterval = setInterval(this.backupTrades.bind(this), this.options.backupInterval);
+			}
+
+			setTimeout(() => {
+				console.log(`[server] Fetch API unlocked`);
+
+				this.lockFetch = false;
+			}, 1000 * 60);
+		})
 	}
 
-	listen() {
+	initStorage() {
+		if (this.options.storage) {
+			this.storage = new (require(`./storage/${this.options.storage}`))(this.options);
+
+			console.log(`[server/backup] Using "${this.options.storage}" storage solution`);
+
+			if (typeof this.storage.connect === 'function') {
+				return this.storage.connect();
+			} else {
+				return Promise.resolve();
+			}
+		}
+
+		console.log(`[server/backup] No storage solution`);
+
+		return Promise.resolve();
+	}
+
+	backupTrades() {
+		if (!this.storage || !this.chunk.length) {
+			return Promise.resolve();
+		}
+
+		console.log(`[server/storage] backup ${this.chunk.length} trades`);
+
+		return this.storage.save(this.chunk.splice(0, this.chunk.length));
+	}
+
+	handleExchangesEvents() {
 		this.exchanges.forEach(exchange => {
 			exchange.on('data', event => {
 				this.timestamps[event.exchange] = +new Date();
@@ -175,7 +221,7 @@ class Server extends EventEmitter {
 		});
 
 		this.wss.on('connection', (ws, req) =>  {
-			const ip = this.getIp(req);
+			const ip = getIp(req);
 			const usage = this.getUsage(ip);
 
 			this.stats.hits++;
@@ -204,59 +250,11 @@ class Server extends EventEmitter {
 				data.notice = this.notice;
 			}
 
-			console.log(`[${ip}/ws${ws.admin ? '/admin' : ''}] joined ${req.url} from ${req.headers['origin']}`, usage ? '(RL: ' + ((usage / this.options.maxUsage) * 100).toFixed() + '%)' : '');
+			console.log(`[${ip}/ws${ws.admin ? '/admin' : ''}] joined ${req.url} from ${req.headers['origin']}`, usage ? '(RL: ' + ((usage / this.options.maxFetchUsage) * 100).toFixed() + '%)' : '');
 
 			this.emit('connections', this.wss.clients.size);
 
 			ws.send(JSON.stringify(data));
-
-			ws.on('message', event => {
-				if (this.processing) {
-					console.log(`[${ip}/cmd] message blocked due to current action`, event);
-				}
-
-				let method, message;
-
-				try {
-					const json = JSON.parse(event);
-
-					method = json.method;
-					message = json.message;
-				} catch (error) {
-					console.log(`[${ip}/cmd]`, 'invalid message', event);
-					return;
-				}
-
-				switch (method) {
-					case 'pair':
-						if (!ws.admin) {
-							return;
-						}
-
-						this.options.pair = message.toUpperCase();
-
-						console.log(`[${ip}/cmd] switching pair`, this.options.pair);
-
-						this.action(method, next => {
-							this.disconnect();
-
-							this.broadcast({
-								type: 'pair',
-								pair: this.options.pair,
-							})
-
-							setTimeout(() => {
-								this.connect();
-
-								next();
-							}, 5000);
-						})
-					break;
-					default:
-						console.log(`[${ip}/cmd] unrecognized method`, method);
-					break;
-				}
-			});
 
 			ws.on('close', event => {
 				let error = null;
@@ -310,7 +308,7 @@ class Server extends EventEmitter {
 		this.http = http.createServer((req, response) => {
 			response.setHeader('Access-Control-Allow-Origin', '*');
 
-			const ip = this.getIp(req);
+			const ip = getIp(req);
 			const usage = this.getUsage(ip);
 			let path = url.parse(req.url).path;
 
@@ -339,13 +337,12 @@ class Server extends EventEmitter {
 			let showHelloWorld = true;
 
 			const routes = [{
-				match: /^\/?history\/(\d+)(?:\/(\d+))?\/?$/,
-				response: (from, to) => {
+				match: /^\/?historical\/(\d+)\/(\d+)(?:\/(\d+))?\/?$/,
+				response: (from, to, timeframe) => {
+					showHelloWorld = false;
 					response.setHeader('Content-Type', 'application/json');
 
 					if (this.lockFetch) {
-						showHelloWorld = false;
-
 						setTimeout(function() {
 							response.end('[]');
 						}, Math.random() * 5000);
@@ -353,103 +350,71 @@ class Server extends EventEmitter {
 						return;
 					}
 
-					let date, path, chunk, output = [];
-
-					from = +from;
-					to = +to;
-
-					if (isNaN(from) && isNaN(to)) {
+					if (isNaN(from) || isNaN(to)) {
 						response.writeHead(400);
 						response.end(JSON.stringify({error: 'Missing interval'}));
 						return;
 					}
 
-					if (isNaN(to)) {
-						if (from > 60) {
-							response.writeHead(400);
-							response.end(JSON.stringify({error: 'Max look back is 60mins at once, please set a lower range'}));
-							return;
-						} else {
-							to = +new Date();
-							from = to - from * 60 * 1000;
-						}
+					timeframe = parseInt(timeframe) || 1000 * 60; // default to 1m					
+					from = Math.floor(from / timeframe) * timeframe;
+					to = Math.floor(to / timeframe) * timeframe;
+
+					if (timeframe > 1000 * 60 * 60 * 24) {
+						response.writeHead(400);
+						response.end(JSON.stringify({error: 'Timeframe cannot exceed 1d'}));
+						return;
+					}
+
+					if (timeframe < 1000 * 10) {
+						response.writeHead(400);
+						response.end(JSON.stringify({error: 'Timeframe cannot be smaller than 10s'}));
+						return;
 					}
 
 					if (from > to) {
+						let _from = parseInt(from);
+						from = parseInt(to);
+						to = _from;
+
+						console.log(`[${ip}] flip interval`);
+					}
+
+					if (to - from > 1000 * 60 * 60 * 24 * 365) {
 						response.writeHead(400);
-						response.end(JSON.stringify({error: 'Invalid interval'}));
+						response.end(JSON.stringify({error: 'Interval cannot exceed 1y'}));
 						return;
 					}
 
-					if (to - from > this.options.backupTimeframe * 1) {
+					if ((to - from) / timeframe > 1000) {
 						response.writeHead(400);
-						response.end(JSON.stringify({error: 'Interval cannot exceed 1 day'}));
+						response.end(JSON.stringify({error: 'Output cannot exceed 1000 points'}));
 						return;
 					}
 
-					if (usage > this.options.maxUsage && to - from > 1000 * 60) {
+					/* if (usage > this.options.maxFetchUsage && to - from > 1000 * 60) {
 						response.end('[]');
 						return;
-					}
+					} */
 
-					const now = +new Date();
-					const names = [];
+					const fetchStartAt = +new Date();
 
-					for (let i = +new Date(new Date(+from).setHours(0, 0, 0, 0)); i <= to; i += this.options.backupTimeframe) {
-						names.push(this.getBackupFilename(new Date(i)));
-					}
+					console.log(`[${ip}] requesting from: ${from} to: ${to} / timeframe: ${timeframe}`);
 
-					if (!names.length) {
-						response.end('[]');
-						return;
-					}
-
-					showHelloWorld = false;
-
-					this.readFiles(names).then(files => {
-						for (let chunk of files) {
-							chunk = chunk.trim().split("\n")
-
-							try {
-								if (chunk[0].split(' ')[1] >= from && chunk[chunk.length - 1].split(' ')[1] <= to) {
-									output = output.concat(chunk.map(row => row.split(' ')));
-								} else {
-
-									for (let j = 0; j < chunk.length; j++) {
-										const trade = chunk[j].split(' ');
-
-										if (trade[1] <= from || trade[1] >= to) {
-											continue;
-										}
-
-										output.push(trade);
-									}
-								}
-							} catch (error) {
-								// console.log(`[server/history] unable to get ${path} (ms ${i})\n\t`, error.message);
-							}
-						}
-
-						for (let i = 0; i < this.chunk.length; i++) {
-							if (this.chunk[i][1] <= from || this.chunk[i][1] >= to) {
-								continue;
+					(this.storage ? this.storage.fetch(from, to, timeframe) : Promise.resolve([]))
+						.then(output => {
+							if (to - from > 1000 * 60) {
+								console.log(`[${ip}] requesting ${getHms(to - from)} (${output.length} trades, took ${getHms(+new Date() - fetchStartAt)}, consumed ${(((usage + to - from) / this.options.maxFetchUsage) * 100).toFixed()}%)`);
 							}
 
-							output.push(this.chunk[i]);
-						}
+							this.logUsage(ip, to - from);
 
-						if (to - from > 1000 * 60) {
-							console.log(`[${ip}] requesting ${this.getHms(to - from)} (${output.length} trades, took ${this.getHms(+new Date() - now)}, consumed ${(((usage + to - from) / this.options.maxUsage) * 100).toFixed()}%)`);
-						}
-
-						this.logUsage(ip, to - from);
-
-						response.end(JSON.stringify(output));
-					})
-					.catch(error => {
-						console.log(`[server/history] error while parsing chunks data`, error.message);
-						response.end('[]');
-					})
+							response.end(JSON.stringify(output));
+						})
+						.catch(error => {
+							response.writeHead(500);
+							response.end(JSON.stringify({error: error.message}));
+						});
 				}
 			}];
 
@@ -480,7 +445,7 @@ class Server extends EventEmitter {
 		});
 
 		this.http.on('upgrade', (req, socket, head) => {
-			const ip = this.getIp(req);
+			const ip = getIp(req);
 
 			if (!new RegExp(this.options.origin).test(req.headers['origin'])) {
 				// console.error(`[${ip}/BLOCKED] socket origin mismatch (${this.options.origin} !== ${req.headers['origin']})`);
@@ -508,7 +473,7 @@ class Server extends EventEmitter {
 		});
 	}
 
-	connect() {
+	connectExchanges() {
 		console.log('[server] listen', this.options.pair);
 
 		this.connected = true;
@@ -543,7 +508,7 @@ class Server extends EventEmitter {
 		});
 	}
 
-	disconnect() {
+	disconnectExchanges() {
 		console.log('[server] disconnect exchanges');
 
 		clearInterval(this.delayInterval);
@@ -557,35 +522,7 @@ class Server extends EventEmitter {
 		this.queue = [];
 	}
 
-	action(method, fn) {
-		if (this.processingAction) {
-			return console.error('[warning] wait until current action is done');
-		}
-
-		console.log(`[${method}] starting`);
-
-		this.processingAction = true;
-
-		fn(() => {
-			console.log(`[${method}] done`);
-			this.processingAction = false;
-		});
-	}
-
-	readFiles(files) {
-		return Promise.all(files.map(file => {
-			return new Promise(function(resolve, reject) {
-				fs.readFile(file, 'utf8', function(err, data) {
-					if (err) 
-						reject(err); 
-					else 
-						resolve(data);
-				});
-			});
-		}));
-	}
-
-	profiler() {
+	monitorExchangesActivity() {
 		const now = +new Date();
 
 		this.exchanges.forEach(exchange => {
@@ -653,8 +590,8 @@ class Server extends EventEmitter {
 
 		if (storedQuotas.length) {
 			storedQuotas.forEach(ip => {
-				if (this.usage[ip].timestamp + this.options.usageResetInterval < now) {
-					if (this.usage[ip].amount > this.options.maxUsage) {
+				if (this.usage[ip].timestamp + this.options.fetchUsageResetInterval < now) {
+					if (this.usage[ip].amount > this.options.maxFetchUsage) {
 						console.log(`[${ip}] Usage cleared (${this.usage[ip].amount} -> 0)`);
 					}
 
@@ -693,7 +630,7 @@ class Server extends EventEmitter {
 				this.stats.unique = this.stats.ips.length;
 			}
 
-			console.log(`[clean] wiped ${this.stats.ips.length} ips from memory`);
+			this.stats.ips.length && console.log(`[clean] wiped ${this.stats.ips.length} ips from memory`);
 
 			this.emit('unique', this.stats.unique);
 
@@ -722,80 +659,6 @@ class Server extends EventEmitter {
 		});
 	}
 
-	updateDayTrades() {
-		return new Promise((resolve, reject) => {
-			if (!this.chunk.length) {
-				return resolve(true);
-			}
-
-			console.log(`[server/backup] preparing to backup ${this.chunk.length} trades... (${this.getHms(this.options.backupInterval)} of data)`);
-
-			if (!fs.existsSync('./data')){
-				fs.mkdirSync('./data');
-			}
-
-			const processDate = (date) => {
-				const nextDateTimestamp = +date + this.options.backupTimeframe;
-				const path = this.getBackupFilename(date);
-
-				console.log(`[server/backup] retrieve trades < ${nextDateTimestamp}`);
-
-				let tradesOfTheDay = [];
-
-				for (let i = 0; i < this.chunk.length; i++) {
-					if (this.chunk[i][1] < nextDateTimestamp) {
-						tradesOfTheDay.push(this.chunk[i]);
-						this.chunk.splice(i, 1);
-						i--;
-					}
-				}
-
-				if (!tradesOfTheDay.length) {
-					console.log(`[server/backup] no trades that day, on to the next day (first timestamp: ${this.chunk[0][1]})`);
-					return processDate(new Date(nextDateTimestamp));
-				}
-
-				console.log(`[server/backup] write ${tradesOfTheDay.length} trades into ${path}`);
-
-				fs.appendFile(path, tradesOfTheDay.map(trade => trade.join(' ')).join("\n") + "\n", (err) => {
-					if (err) {
-						throw new Error(err);
-					}
-
-					if (this.chunk.length && this.chunk[0][1] >= nextDateTimestamp) {
-						console.log(`[server/backup] next chunk start at ${this.chunk[0][1]}, next day at ${nextDateTimestamp}`);
-
-						return processDate(new Date(nextDateTimestamp));
-					} else {
-						return resolve(true);
-					}
-				});
-			}
-
-			processDate(new Date(new Date(this.chunk[0][1]).setHours(0, 0, 0, 0)));
-		});
-	}
-
-	getBackupFilename(date) {
-		return 'data/' + (this.options.pair + '_' + date.getFullYear() + '-' + ('0' + (date.getMonth()+1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2));
-	}
-
-	getHms(d) {
-		var h = Math.floor(d / 1000 / 3600);
-		var m = Math.floor(d / 1000 % 3600 / 60);
-		var s = Math.floor(d / 1000 % 3600 % 60);
-		var output = '';
-
-		output += (h > 0 ? h + 'h' + (m ? ', ' : '') : "");
-		output += (m > 0 ? m + 'm' + (s ? ', ' : '') : "");
-		output += (s > 0 ? s + 's' : "");
-
-		if (!output.length || (d < 60 * 1000 && d > s * 1000))
-			output += (output.length ? ', ' : '') + (d - s * 1000) + 'ms';
-
-		return output.trim();
-	}
-
 	getUsage(ip) {
 		if (typeof this.usage[ip] === 'undefined') {
 			this.usage[ip] = {
@@ -809,22 +672,12 @@ class Server extends EventEmitter {
 
 	logUsage(ip, amount) {
 		if (typeof this.usage[ip] !== 'undefined') {
-			if (this.usage[ip].amount < this.options.maxUsage) {
+			if (this.usage[ip].amount < this.options.maxFetchUsage) {
 				this.usage[ip].timestamp = +new Date();
 			}
 
 			this.usage[ip].amount += amount;
 		}
-	}
-
-	getIp(req) {
-		let ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-
-		if (ip.indexOf('::ffff:') === 0) {
-			ip = ip.substr('::ffff:'.length, ip.length);
-		}
-
-		return ip;
 	}
 
 }

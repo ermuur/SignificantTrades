@@ -106,7 +106,7 @@ if (process.env.pmx) {
 process.on('SIGINT', function() {
 	console.log('SIGINT');
 
-	Promise.all([server.updatePersistence(), server.updateDayTrades()]).then(data => {
+	Promise.all([server.updatePersistence(), server.backupTrades()]).then(data => {
 		console.log('[server/exit] Goodbye')
 
 		process.exit();

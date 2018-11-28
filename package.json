@@ -19,6 +19,8 @@
   "homepage": "https://github.com/Tucsky/SignificantTrades#readme",
   "dependencies": {
     "axios": "^0.18.0",
+    "elasticsearch": "^15.1.1",
+    "influx": "^5.0.7",
     "pako": "^1.0.6",
     "pmx": "^1.6.4",
     "pusher-js": "^4.2.2",
