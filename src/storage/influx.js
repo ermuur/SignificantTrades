@@ -86,7 +86,6 @@ class InfluxStorage {
 	}
 
 	fetch(from, to, timeframe = 1000 * 60) {
-		console.log('fetch!', from, to, timeframe, this.options.pair);
 		return this.influx.query(`
 			SELECT
 				first(price) AS open,
