@@ -14,6 +14,8 @@ class EsStorage {
 	}
 
 	connect() {
+		console.warn(`[storage/es] ES STORAGE IS EXPERIMENTAL\n\tFor stable solution use "files" or "influx" storages`);
+
 		console.log(`[storage/es] connecting`);
 
 		return new Promise((resolve, reject) => {

@@ -31,7 +31,7 @@ class Server extends EventEmitter {
 			origin: '.*',
 
 			// max interval an ip can fetch in a limited amount of time (default 1 day)
-			maxFetchUsage: 1000 * 60 * 60 * 24,
+			maxFetchUsage: 1000 * 60 * 60 * 24 * 7,
 
 			// clear user usage after n ms of inactivity
 			fetchUsageResetInterval: 1000 * 60 * 10,
@@ -392,10 +392,10 @@ class Server extends EventEmitter {
 						return;
 					}
 
-					/* if (usage > this.options.maxFetchUsage && to - from > 1000 * 60) {
+					if (usage > this.options.maxFetchUsage && to - from > 1000 * 60) {
 						response.end('[]');
 						return;
-					} */
+					}
 
 					const fetchStartAt = +new Date();
 
@@ -409,7 +409,10 @@ class Server extends EventEmitter {
 
 							this.logUsage(ip, to - from);
 
-							response.end(JSON.stringify(output));
+							response.end(JSON.stringify({
+								format: this.storage.format || 'trade',
+								results: output
+							}));
 						})
 						.catch(error => {
 							response.writeHead(500);

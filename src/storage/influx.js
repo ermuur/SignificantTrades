@@ -4,6 +4,8 @@ const getHms = require('../helper').getHms;
 class InfluxStorage {
 
 	constructor(options) {
+		this.format = 'tick';
+
 		if (!options.influxUrl) {
 			throw `Please set the influxdb url using influxURL property in config.json`;
 		}
@@ -94,7 +96,7 @@ class InfluxStorage {
 				sum(buy) + sum(sell) AS volume,
 				sum(buy) * median(price) as buys,
 				sum(sell) * median(price) as sells,
-				sum(liquidation) as liquidations,
+				sum(liquidation) * median(price) as liquidations,
 				count(side) as records
 			FROM trades 
 			WHERE pair='${this.options.pair}' AND time > ${from}ms and time < ${to}ms 
