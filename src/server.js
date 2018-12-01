@@ -54,6 +54,12 @@ class Server extends EventEmitter {
 			// elasticsearch server to use when storage is set to "es"
 			esUrl: 'localhost:9200',
 
+			// influx db server to use when storage is set to "influx"
+			influxUrl: 'localhost:9200',
+
+			// how files should be splitted (how many ms per file, ex 3600000 for 1h) 
+			filesInterval: 3600000,
+
 		}, options);
 
 		if (!this.options.exchanges || !this.options.exchanges.length) {

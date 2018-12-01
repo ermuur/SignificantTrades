@@ -6,8 +6,8 @@ class FilesStorage {
 		this.options = options;
 		this.format = 'trade';
 
-		if (!this.options.fileInterval) {
-			this.options.fileInterval = 3600000; // 1h file default
+		if (!this.options.filesInterval) {
+			this.options.filesInterval = 3600000; // 1h file default
 		}
 
 		if (!fs.existsSync('./data')){
@@ -24,13 +24,26 @@ class FilesStorage {
 	 * @memberof FilesStorage
 	 */
 	getBackupFilename(date) {
-		return `
+		let filename = `
 			data/${this.options.pair}
 			_${date.getFullYear()}
 			-${('0' + (date.getMonth()+1)).slice(-2)}
 			-${('0' + date.getDate()).slice(-2)}
-			-${('0' + date.getHours()).slice(-2)}
-		`.replace(/\s+/g, '');
+		`;
+
+		if (this.options.filesInterval < 1000 * 60 * 60 * 24) {
+			filename += `-${('0' + date.getHours()).slice(-2)}`;
+		}
+
+		if (this.options.filesInterval < 1000 * 60 * 60) {
+			filename += `-${('0' + date.getMinutes()).slice(-2)}`;
+		}
+
+		if (this.options.filesInterval < 1000 * 60) {
+			filename += `-${('0' + date.getSeconds()).slice(-2)}`;
+		}
+
+		return filename.replace(/\s+/g, '');
 	}
 
 	save(chunk) {
@@ -44,7 +57,7 @@ class FilesStorage {
 			}
 
 			const processDate = (date) => {
-				const nextDateTimestamp = +date + this.options.fileInterval;
+				const nextDateTimestamp = +date + this.options.filesInterval;
 				const path = this.getBackupFilename(date);
 
 				let tradesOfTheDay = [];
@@ -74,14 +87,14 @@ class FilesStorage {
 				});
 			}
 
-			processDate(new Date(Math.floor(chunk[0][1] / this.options.fileInterval) * this.options.fileInterval));
+			processDate(new Date(Math.floor(chunk[0][1] / this.options.filesInterval) * this.options.filesInterval));
 		});
 	}
 
 	fetch(from, to, timeframe) {
 		const paths = [];
 
-		for (let i = Math.floor(from / this.options.fileInterval) * this.options.fileInterval; i <= to; i += this.options.fileInterval) {
+		for (let i = Math.floor(from / this.options.filesInterval) * this.options.filesInterval; i <= to; i += this.options.filesInterval) {
 			paths.push(this.getBackupFilename(new Date(i)));
 		}
 
@@ -93,7 +106,7 @@ class FilesStorage {
 			return new Promise((resolve, reject) => {
 				fs.readFile(path, 'utf8', (error, data) => {
 					if (error) {
-						console.error(`[storage/files] unable to get ${path}\n\t`, error.message);
+						// console.error(`[storage/files] unable to get ${path}\n\t`, error.message);
 						return resolve([]);
 					}
 
