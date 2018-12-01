@@ -92,12 +92,13 @@ class InfluxStorage {
 				max(price) AS high,
 				min(price) AS low,
 				sum(buy) + sum(sell) AS volume,
-				sum(buy) as buys,
-				sum(sell) as sells,
-				sum(liquidation) as liquidation
+				sum(buy) * median(price) as buys,
+				sum(sell) * median(price) as sells,
+				sum(liquidation) as liquidations,
+				count(side) as records
 			FROM trades 
 			WHERE pair='${this.options.pair}' AND time > ${from}ms and time < ${to}ms 
-			GROUP BY time(${timeframe}ms), exchange
+			GROUP BY time(${timeframe}ms), exchange fill(none)
 		`).catch(error => {
 			console.error(`[storage/files] failed to retrieves trades between ${from} and ${to} with timeframe ${timeframe}\n\t`, error.message);
 		});
