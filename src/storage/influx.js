@@ -99,7 +99,14 @@ class InfluxStorage {
 			FROM trades 
 			WHERE pair='${this.options.pair}' AND time > ${from}ms and time < ${to}ms 
 			GROUP BY time(${timeframe}ms), exchange fill(none)
-		`).catch(error => {
+		`).then(ticks => ticks.map(tick => {
+			tick.timestamp = +new Date(tick.time);
+
+			delete tick.time;
+
+			return tick;
+		}).sort((a, b) => a.timestamp - b.timestamp))
+		.catch(error => {
 			console.error(`[storage/files] failed to retrieves trades between ${from} and ${to} with timeframe ${timeframe}\n\t`, error.message);
 		});
 	}
