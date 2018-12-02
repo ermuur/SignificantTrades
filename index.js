@@ -42,7 +42,9 @@ if (process.argv.length > 2) {
 	if (exchanges.length) {
 		config.exchanges = exchanges;
 	}
-} else if (!config.exchanges || !config.exchanges.length) {
+}
+
+if (!config.exchanges || !config.exchanges.length) {
 	config.exchanges = [];
 
 	fs.readdirSync('./src/exchanges/').forEach(file => {
