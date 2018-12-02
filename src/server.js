@@ -463,7 +463,7 @@ class Server extends EventEmitter {
 						<body>
 							You seems lost, the actual app is located <a target="_blank" href="https://github.com/Tucsky/SignificantTrades">here</a>.<br>
 							You like it ? <a target="_blank" href="bitcoin:3GLyZHY8gRS96sH4J9Vw6s1NuE4tWcZ3hX">BTC for more :-)</a>.<br><br>
-							<small>24/7 aggregator for BTCUSD</small>
+							<small>24/7 aggregator for ${this.options.pair}</small>
 						</body>
 					</html>
 				`);
