@@ -417,7 +417,6 @@ class Server extends EventEmitter {
 					(this.storage ? this.storage.fetch(from, to, timeframe) : Promise.resolve([]))
 						.then(output => {
 							if (to - from > 1000 * 60) {
-								console.log('usage + to - from', usage + to - from, usage, to, from, this.options.maxFetchUsage);
 								console.log(`[${ip}] requesting ${getHms(to - from)} (${output.length} ${this.storage.format}s, took ${getHms(+new Date() - fetchStartAt)}, consumed ${(((usage + to - from) / this.options.maxFetchUsage) * 100).toFixed()}%)`);
 							}
 
