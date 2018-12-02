@@ -14,7 +14,7 @@ class Server extends EventEmitter {
 		this.timestamps = {};
 		this.connected = false;
 		this.chunk = [];
-		this.lockFetch = false;
+		this.lockFetch = true;
 
 		this.options = Object.assign({
 
@@ -362,20 +362,35 @@ class Server extends EventEmitter {
 						return;
 					}
 
-					timeframe = parseInt(timeframe) || 1000 * 60; // default to 1m					
-					from = Math.floor(from / timeframe) * timeframe;
-					to = Math.floor(to / timeframe) * timeframe;
+					let maxFetchInterval = 1000 * 60 * 60 * 24; 
 
-					if (timeframe > 1000 * 60 * 60 * 24) {
-						response.writeHead(400);
-						response.end(JSON.stringify({error: 'Timeframe cannot exceed 1d'}));
-						return;
-					}
+					if (this.storage.format === 'tick') {
+						maxFetchInterval *= 365;
 
-					if (timeframe < 1000 * 10) {
-						response.writeHead(400);
-						response.end(JSON.stringify({error: 'Timeframe cannot be smaller than 10s'}));
-						return;
+						timeframe = parseInt(timeframe) || 1000 * 60; // default to 1m					
+						from = Math.floor(from / timeframe) * timeframe;
+						to = Math.floor(to / timeframe) * timeframe;
+
+						if (timeframe > 1000 * 60 * 60 * 24) {
+							response.writeHead(400);
+							response.end(JSON.stringify({error: 'Timeframe cannot exceed 1d'}));
+							return;
+						}
+
+						if (timeframe < 1000 * 10) {
+							response.writeHead(400);
+							response.end(JSON.stringify({error: 'Timeframe cannot be smaller than 10s'}));
+							return;
+						}
+
+						if ((to - from) / timeframe > 1000) {
+							response.writeHead(400);
+							response.end(JSON.stringify({error: 'Output cannot exceed 1000 points'}));
+							return;
+						}
+					} else {
+						from = parseInt(from);
+						to = parseInt(to);
 					}
 
 					if (from > to) {
@@ -386,15 +401,9 @@ class Server extends EventEmitter {
 						console.log(`[${ip}] flip interval`);
 					}
 
-					if (to - from > 1000 * 60 * 60 * 24 * 365) {
+					if (to - from > maxFetchInterval) {
 						response.writeHead(400);
-						response.end(JSON.stringify({error: 'Interval cannot exceed 1y'}));
-						return;
-					}
-
-					if ((to - from) / timeframe > 1000) {
-						response.writeHead(400);
-						response.end(JSON.stringify({error: 'Output cannot exceed 1000 points'}));
+						response.end(JSON.stringify({error: `Interval cannot exceed ${getHms(maxFetchInterval)}`}));
 						return;
 					}
 
@@ -405,18 +414,27 @@ class Server extends EventEmitter {
 
 					const fetchStartAt = +new Date();
 
-					console.log(`[${ip}] requesting from: ${from} to: ${to} / timeframe: ${timeframe}`);
-
 					(this.storage ? this.storage.fetch(from, to, timeframe) : Promise.resolve([]))
 						.then(output => {
 							if (to - from > 1000 * 60) {
-								console.log(`[${ip}] requesting ${getHms(to - from)} (${output.length} trades, took ${getHms(+new Date() - fetchStartAt)}, consumed ${(((usage + to - from) / this.options.maxFetchUsage) * 100).toFixed()}%)`);
+								console.log('usage + to - from', usage + to - from, usage, to, from, this.options.maxFetchUsage);
+								console.log(`[${ip}] requesting ${getHms(to - from)} (${output.length} ${this.storage.format}s, took ${getHms(+new Date() - fetchStartAt)}, consumed ${(((usage + to - from) / this.options.maxFetchUsage) * 100).toFixed()}%)`);
+							}
+
+							if (this.storage.format === 'trade') {
+								for (let i = 0; i < this.chunk.length; i++) {
+									if (this.chunk[i][1] <= from || this.chunk[i][1] >= to) {
+										continue;
+									}
+
+									output.push(this.chunk[i]);
+								}
 							}
 
 							this.logUsage(ip, to - from);
 
 							response.end(JSON.stringify({
-								format: this.storage.format || 'trade',
+								format: this.storage.format,
 								results: output
 							}));
 						})
