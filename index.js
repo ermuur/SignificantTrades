@@ -27,7 +27,21 @@ try {
 */
 
 if (process.argv.length > 2) {
-	config.exchanges = process.argv.slice(2);
+	let exchanges = [];
+
+	process.argv.slice(2).forEach(arg => {
+		const keyvalue = arg.split('=');
+		
+		if (keyvalue.length === 1) {
+			exchanges.push(arg);
+		} else {
+			config[keyvalue[0]] = keyvalue[1];
+		}
+	})
+
+	if (exchanges.length) {
+		config.exchanges = exchanges;
+	}
 } else if (!config.exchanges || !config.exchanges.length) {
 	config.exchanges = [];
 
