@@ -107,8 +107,6 @@ const emitter = new Vue({
                 this.$emit('alert', {
                   id: `server_status`,
                   type: 'info',
-                  title: `Tracking ${data.pair}`,
-                  message: !this.exchanges.length ? 'No connected exchanges' : 'On ' + this.exchanges.join(', ').toUpperCase()
                 });
               }
             break;
@@ -244,7 +242,7 @@ const emitter = new Vue({
         willReplace = true;
       }
 
-      const url = `${this.http_url}/history/${parseInt(from)}/${parseInt(to)}`;
+      const url = `${this.http_url}/historical/${parseInt(from)}/${parseInt(to)}`;
 
       if (this.lastFetchUrl === url) {
         return new Promise((resolve, reject) => resolve());
@@ -261,7 +259,11 @@ const emitter = new Vue({
           })
         })
         .then(response => {
-          const trades = response.data;
+          if (!response.data || !response.data.format || response.data.format !== 'trade') {
+            return resolve([]);
+          }
+
+          const trades = response.data.results;
           const count = this.trades.length;
 
           if (this.delayed) {
