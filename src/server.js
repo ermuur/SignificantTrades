@@ -343,7 +343,7 @@ class Server extends EventEmitter {
 			let showHelloWorld = true;
 
 			const routes = [{
-				match: /^\/?historical\/(\d+)\/(\d+)(?:\/(\d+))?\/?$/,
+				match: /.*historical\/(\d+)\/(\d+)(?:\/(\d+))?\/?$/,
 				response: (from, to, timeframe) => {
 					showHelloWorld = false;
 					response.setHeader('Content-Type', 'application/json');
