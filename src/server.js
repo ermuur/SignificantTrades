@@ -30,26 +30,27 @@ class Server extends EventEmitter {
 			// restrict origin (now using regex)
 			origin: '.*',
 
-			// max interval an ip can fetch in a limited amount of time (default 1 day)
+			// max interval an ip can fetch in a limited amount of time (usage restriction, default 7 day)
 			maxFetchUsage: 1000 * 60 * 60 * 24 * 7,
 
-			// clear user usage after n ms of inactivity
+			// the limited amount of time in which the user usage will be stored
 			fetchUsageResetInterval: 1000 * 60 * 10,
-
-			// do backup every n ms
-			backupInterval: 1000 * 60,
 
 			// admin access type (whitelist, all, none)
 			admin: 'whitelist',
 
-			// enable websocket server on startup
+			// enable websocket server on startup (if you only use this for storing trade data set to false)
 			websocket: true,
 
 			// storage solution, either 
 			// "none" (no storage, everything is wiped out after broadcast)
-			// "files" (daily .txt),
-			// "es" (bulk insert elasticsearch every options.backupInterval ms)
+			// "files" (periodical text file),
+			// "influx" (timeserie database),
+			// "es" (experimental)
 			storage: 'files',
+
+			// store interval (in ms)
+			backupInterval: 1000 * 60,
 
 			// elasticsearch server to use when storage is set to "es"
 			esUrl: 'localhost:9200',
@@ -57,7 +58,7 @@ class Server extends EventEmitter {
 			// influx db server to use when storage is set to "influx"
 			influxUrl: 'localhost:9200',
 
-			// how files should be splitted (how many ms per file, ex 3600000 for 1h) 
+			// create new text file every N ms when storage is set to "file"
 			filesInterval: 3600000,
 
 		}, options);
