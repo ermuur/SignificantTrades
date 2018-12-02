@@ -323,6 +323,7 @@ class Server extends EventEmitter {
 
 				if (req.headers.accept && req.headers.accept.indexOf('json') > -1) {
 					setTimeout(function() {
+						response.writeHead(400);
 						response.end(JSON.stringify({error: 'naughty, naughty...'}));
 					}, 5000 + Math.random() * 5000);
 
