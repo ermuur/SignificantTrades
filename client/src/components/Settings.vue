@@ -3,15 +3,9 @@
     <div class="stack__wrapper" ref="settingsWrapper">
       <a href="#" class="stack__toggler icon-cross" v-on:click="hideSettings"></a>
       <div class="settings__title" v-on:click="toggleSection('basics')" v-bind:class="{closed: options.settings.indexOf('basics') > -1}">Basics <i class="icon-up"></i></div>
-      <div class="settings__column">
-        <div class="form-group" v-bind:class="{ restricted: restricted }">
-          <label>Pair <span class="icon-info-circle" v-bind:title="help.pair" v-tippy></span></label>
-          <input type="string" placeholder="BTCUSD" class="form-control" v-model="options.pair" @change="switchPair" :disabled="restricted">
-        </div>
         <div class="form-group">
-          <label>Max rows <span class="icon-info-circle" v-bind:title="help.maxRows" v-tippy></span></label>
-          <input type="number" min="0" max="1000" step="1" class="form-control" v-model="options.maxRows">
-        </div>
+        <label>Max rows <span class="icon-info-circle" v-bind:title="help.maxRows" v-tippy></span></label>
+        <input type="number" min="0" max="1000" step="1" class="form-control" v-model="options.maxRows">
       </div>
       <div class="mt8 settings__title" v-on:click="toggleSection('chart')" v-bind:class="{closed: options.settings.indexOf('chart') > -1}">Chart <i class="icon-up"></i></div>
       <div>
@@ -24,10 +18,6 @@
             <label>Avg. price <span class="icon-info-circle" v-bind:title="help.avgPeriods" v-tippy></span></label>
             <div class="input-group">
               <input type="number" min="0" max="100" step="1" class="form-control" v-model="options.avgPeriods">
-              <label class="checkbox-control flex-right" title="Use weighed average" v-tippy>
-                <input type="checkbox" class="form-control" v-model="options.useWeighedAverage">
-                <div></div>
-              </label>
             </div>
           </div>
         </div>

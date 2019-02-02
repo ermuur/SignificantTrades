@@ -14,6 +14,7 @@ const emitter = new Vue({
       socket: null,
       connected: false,
       reconnectionDelay: 2000,
+      opens: {}
     }
   },
   created() {
@@ -287,6 +288,8 @@ const emitter = new Vue({
             }
           }
 
+          this.retrieveExchangesOpen();
+
           if (count !== this.trades.length) {
             this.$emit('history', willReplace, setRange);
           }
@@ -304,6 +307,19 @@ const emitter = new Vue({
           reject(err);
         })
       });
+    },
+    retrieveExchangesOpen() {
+      this.opens = {};
+
+      for (let trade of this.trades) {
+        if (Object.keys(this.opens) === this.exchanges.length) {
+          break;
+        }
+
+        if (typeof this.opens[trade[0]] === 'undefined') {
+          this.opens[trade[0]] = +trade[2];
+        }
+      }
     },
     trim(timestamp) {
       let index;

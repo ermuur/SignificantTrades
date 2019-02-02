@@ -427,7 +427,6 @@
         switch (data.prop) {
           case 'exchanges':
           case 'avgPeriods':
-          case 'useWeighedAverage':
           case 'showPlotsSignificants':
           case 'showPlotsLiquidations':
             this.appendTicksToChart(this.getTicks(), true);
@@ -595,13 +594,13 @@
       //
 
       getTicks(input) {
-        var id = btoa(Math.random()).substring(0,12);
         let data;
 
         if (input) {
           data = input.sort((a, b) => a[1] - b[1]);
         } else {
           delete this.tick;
+
           this.averages.splice(0, this.averages.length);
           data = socket.trades.slice(0);
         }
@@ -637,14 +636,43 @@
               if (this.averages.length > options.avgPeriods) {
                 this.averages.splice(0, this.averages.length - options.avgPeriods);
               }
+
+              for (let name in this.tick.exchanges) {
+                this.tick.exchanges[name].empty = true;
+              }
+            }
+
+            if (!this.tick) {
+              const opens = Object.keys(socket.opens).filter(a => options.exchanges.indexOf(a) !== -1);
+
+              if (opens.length) {
+                this.tick = {
+                  exchanges: {},
+                  size: 0,
+                  prices: 0
+                }
+
+                for (let name of opens) {
+                  this.tick.exchanges[name] = {
+                    close: socket.opens[name],
+                    prices: socket.opens[name],
+                    size: 1,
+                    empty: true
+                  }
+
+                  this.tick.size++;
+                  this.tick.prices += socket.opens[name];
+                }
+              }
             }
 
             this.tick = {
               timestamp: +data[i][1],
-              exchanges: {},
+              exchanges: this.tick ? this.tick.exchanges : {},
               buys: 0,
               sells: 0,
-              size: 0
+              size: this.tick ? this.tick.size : 0,
+              prices: this.tick ? this.tick.prices : 0,
             };
           }
 
@@ -653,6 +681,14 @@
               prices: 0,
               size: 0
             };
+          }
+
+          if (this.tick.exchanges[data[i][0]].empty) {
+            this.tick.exchanges[data[i][0]].empty = false;
+            
+            this.tick.size -= this.tick.exchanges[data[i][0]].size;
+            this.tick.exchanges[data[i][0]].size = 0;
+            this.tick.exchanges[data[i][0]].prices = 0;
           }
 
           this.tick.exchanges[data[i][0]].prices += (data[i][2] * data[i][3]);
@@ -683,24 +719,24 @@
 
           const closes = [];
 
-          for (let exchange in tick.exchanges) {
-            let price = tick.exchanges[exchange].prices / tick.exchanges[exchange].size;
+          for (let name in tick.exchanges) {
+            const exchange = tick.exchanges[name];
 
-            if (options.useWeighedAverage) {
-              closes.push([price, tick.exchanges[exchange].size]);
+            let price;
+
+            if (exchange.empty) {
+              price = exchange.close;
             } else {
-              closes.push([tick.exchanges[exchange].close, tick.exchanges[exchange].size]);
+              price = exchange.prices / exchange.size;
             }
+
+            closes.push([exchange.close, exchange.size]);
 
             tick.high = isNaN(tick.high) ? price : Math.max(tick.high, price);
             tick.low = isNaN(tick.low) ? price : Math.min(tick.low, price);
           }
 
-          if (options.useWeighedAverage) {
-            tick.close = closes.map(a => a[0] * a[1]).reduce((a, b) => a + b) / tick.size;
-          } else {
-            tick.close = closes.map(a => a[0]).reduce((a, b) => a + b) / closes.length;
-          }
+          tick.close = closes.map(a => a[0]).reduce((a, b) => a + b) / closes.length;
 
           /* get period typical price
           */
@@ -711,11 +747,7 @@
           const cumulatives = this.averages.concat([[typical, tick.buys + tick.sells]]);
 
           if (this.averages && options.avgPeriods > 0 && cumulatives.length > 1) {
-            if (options.useWeighedAverage) {
-              this.priceIndex = cumulatives.map(a => a[0] * a[1]).reduce((a, b) => a + b) / cumulatives.map(a => a[1]).reduce((a, b) => a + b);
-            } else {
-              this.priceIndex = cumulatives.map(a => a[0]).reduce((a, b) => a + b) / cumulatives.length;
-            }
+            this.priceIndex = cumulatives.map(a => a[0]).reduce((a, b) => a + b) / cumulatives.length;
           } else {
             this.priceIndex = typical;
           }
