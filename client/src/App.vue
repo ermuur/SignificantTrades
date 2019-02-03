@@ -97,7 +97,7 @@
       }
     },
     mounted() {
-      socket.fetch(10, null, true, false)
+      socket.fetch(1, null, true, false)
         .then((response, err) => {
           !err && socket.connect();
         }).catch(error => {
