@@ -1,7 +1,7 @@
 <template>
   <div class="trades">
     <ul v-if="trades.length">
-      <li v-for="trade in trades" class="trades__item" :key="trade.id" :class="trade.classname" :style="{ 'background-image': trade.image, 'background-color': trade.hsl }">
+      <li v-for="trade in trades" class="trades__item" :key="trade.id" :class="trade.classname" :style="{ 'background-image': trade.image, 'background-color': trade.background, 'color': trade.foreground }">
         <template v-if="trade.message">
           <div class="trades__item__side icon-side"></div>
           <div class="trades__item__message" v-html="trade.message"></div>
@@ -35,19 +35,21 @@
       return {
         ticks: {},
         trades: [],
-        gifs: [],
+        gifs: []
       }
     },
     created() {
       this.getGifs();
+      this.refreshColorsPercentages();
+
+      socket.$on('trades', this.onTrades);
+      socket.$on('history', this.onFetch);
+      socket.$on('pair', this.onPair);
     },
     mounted() {
       if (options.useAudio) {
         this.sfx = new Sfx();
       }
-
-      socket.$on('trades', this.onTrades);
-      socket.$on('pair', this.onPair);
 
       setTimeout(() => {
         options.$on('change', this.onSettings);
@@ -58,10 +60,13 @@
           element.innerHTML = this.ago(element.getAttribute('timestamp'));
         }
       }, 1000);
+
+      this.onFetch();
     },
     beforeDestroy() {
       socket.$off('pair', this.onPair);
       socket.$off('trades', this.onTrades);
+      socket.$off('history', this.onFetch);
       options.$off('change', this.onSettings);
 
       clearInterval(this.timeAgoInterval);
@@ -78,12 +83,29 @@
               this.sfx && this.sfx.disconnect() && delete this.sfx;
             }
           break;
+          case 'colors':
+            this.refreshColorsPercentages();
+            this.trades.splice(0, this.trades.length);
+            
+            clearTimeout(this._refreshColorRenderList);
+
+            this._refreshColorRenderList = setTimeout(() => {
+              this.onTrades(socket.trades.slice(socket.trades.length - 1000, socket.trades.length));
+            }, 500);
+          break;
         }
       },
       onPair(pair) {
         this.trades.splice(0, this.trades.length);
       },
-      onTrades(trades) {
+      onFetch() {
+        if (!this.trades.length && socket.trades.length) {
+          this.onTrades(socket.trades, true);
+
+          socket.$off('history', this.onFetch);
+        }
+      },
+      onTrades(trades, silent = false) {
         for (let trade of trades) {
           if (options.exchanges.indexOf(trade[0]) === -1) {
             continue;
@@ -92,7 +114,7 @@
           const size = trade[2] * trade[3];
 
           if (trade[5] === 1) {
-            this.sfx && this.sfx.liquidation();
+            this.sfx && !silent && this.sfx.liquidation();
 
             if (size >= options.threshold) {
               this.appendRow(trade, ['liquidation'], `${app.getAttribute('data-symbol')}<strong>${formatAmount(size, 1)}</strong> liquidated <strong>${trade[4] ? 'SHORT' : 'LONG'}</strong> @ ${app.getAttribute('data-symbol')}${formatPrice(trade[2])}`);
@@ -101,7 +123,7 @@
           }
           
           if (options.useAudio && ((options.audioIncludeAll && size > options.threshold * .1) || size > options.significantTradeThreshold)) {
-            this.sfx && this.sfx.tradeToSong(size / options.significantTradeThreshold, trade[4]);
+            this.sfx && !silent && this.sfx.tradeToSong(size / options.significantTradeThreshold, trade[4]);
           }
 
           // group by [exchange name + buy=1/sell=0] (ex bitmex1)
@@ -142,35 +164,23 @@
       appendRow(trade, classname = [], message = null) {
         let icon;
         let image;
-        let hsl;
         let amount = trade[2] * trade[3];
+        let color = this.getTradeColor(trade);
 
         if (trade[4]) {
           classname.push('buy');
         } else {
           classname.push('sell');
         }
-
+          
         if (amount >= options.significantTradeThreshold) {
           classname.push('significant');
-
-          if (options.useShades) {
-            let ratio = Math.min(1, (amount - options.significantTradeThreshold) / (options.hugeTradeThreshold - options.significantTradeThreshold));
-
-            if (trade[4]) {
-              hsl = `hsl(89, ${(36 + ((1 - ratio) * 10)).toFixed(2)}%, ${(35 + (ratio * 20)).toFixed(2)}%)`;
-            } else {
-              hsl = `hsl(4, ${(70 + (ratio * 30)).toFixed(2)}%, ${(45 + ((1 - ratio) * 15)).toFixed(2)}%)`;
-            }
-          }
         }
 
         if (amount >= options.hugeTradeThreshold) {
-          if (this.gifs.huge && this.gifs.huge.length) {
+          if (amount < options.rareTradeThreshold && this.gifs.huge && this.gifs.huge.length) {
             image = this.gifs.huge[Math.floor(Math.random() * (this.gifs.huge.length - 1))];
           }
-
-          hsl = null;
 
           classname.push('huge');
         }
@@ -191,7 +201,8 @@
 
         this.trades.unshift({
           id: Math.random().toString(36).substring(7),
-          hsl: hsl,
+          background: color.background,
+          foreground: color.foreground,
           side: trade[4] ? 'BUY' : 'SELL',
           size: trade[3],
           exchange: trade[0],
@@ -239,25 +250,93 @@
           }
         });
       },
+      refreshColorsPercentages() {  
+        this.colors = {};
+      
+        const thresholds = [
+          0,
+          options.significantTradeThreshold,
+          options.hugeTradeThreshold,
+          options.rareTradeThreshold
+        ];
+
+        for (let side in options.colors) {
+          this.colors[side] = options.colors[side].map((color, index) => ({
+            pct: thresholds[index] / options.rareTradeThreshold,
+            color: this.hexToRgb(color)
+          }));
+        }
+      },
       ago(timestamp) {
         const seconds = Math.floor((new Date() - timestamp) / 1000);
         let interval, output;
 
-        if ((interval = Math.floor(seconds / 31536000)) > 1)
+        if ((interval = Math.floor(seconds / 31536000)) >= 1)
           output = interval + 'y';
-        else if ((interval = Math.floor(seconds / 2592000)) > 1)
+        else if ((interval = Math.floor(seconds / 2592000)) >= 1)
           output = interval + 'm';
-        else if ((interval = Math.floor(seconds / 86400)) > 1)
+        else if ((interval = Math.floor(seconds / 86400)) >= 1)
           output = interval + 'd';
-        else if ((interval = Math.floor(seconds / 3600)) > 1)
+        else if ((interval = Math.floor(seconds / 3600)) >= 1)
           output = interval + 'h';
-        else if ((interval = Math.floor(seconds / 60)) > 1)
+        else if ((interval = Math.floor(seconds / 60)) >= 1)
           output = interval + 'm';
         else
           output = Math.ceil(seconds) + 's';
 
         return output;
-      }
+      },
+      hexToRgb(hex) {
+        const bigint = parseInt(hex.replace(/[^0-9A-F]/gi, ''), 16);
+        const r = (bigint >> 16) & 255;
+        const g = (bigint >> 8) & 255;
+        const b = bigint & 255;
+
+        return {
+          r,
+          g,
+          b
+        };
+      },
+      getTradeColor(trade) {
+        const amount = trade[2] * trade[3];
+        const pct = amount / options.rareTradeThreshold;
+        const palette = this.colors[trade[4] ? 'buys': 'sells'];
+
+        for (var i = 1; i < palette.length - 1; i++) {
+          if (pct < palette[i].pct) {
+            break;
+          }
+        }
+
+        const lower = palette[i - 1];
+        const upper = palette[i];
+        const range = upper.pct - lower.pct;
+        const rangePct = (pct - lower.pct) / range;
+        const pctLower = 1 - rangePct;
+        const pctUpper = rangePct;
+        const color = {
+          r: Math.floor(lower.color.r * pctLower + upper.color.r * pctUpper),
+          g: Math.floor(lower.color.g * pctLower + upper.color.g * pctUpper),
+          b: Math.floor(lower.color.b * pctLower + upper.color.b * pctUpper)
+        };
+
+        const opacity = +(.33 + Math.min(.66, amount / options.significantTradeThreshold * .66)).toFixed(2);
+        let luminance = Math.sqrt(0.299 * Math.pow(color.r, 2) + 0.587 * Math.pow(color.g, 2) + 0.114 * Math.pow(color.b, 2));
+        
+        if (opacity < 1) {
+          if (options.dark) {
+            luminance *= opacity;
+          } else {
+            luminance = 255;
+          }
+        }
+
+        return {
+          background: 'rgba(' + [color.r, color.g, color.b, opacity].join(',') + ')',
+          foreground: 'rgba(' + (luminance > 200 ? '0,0,0' : '255,255,255') + ',' + Math.min(1, opacity * 1.25) + ')'
+        }
+      }  
     }
   }
 </script>
@@ -287,12 +366,13 @@
   .trades__item {
     display: flex;
     flex-flow: row nowrap;
-    padding: 5px 7px;
+    padding: .25em .5em;
     background-position: center center;
     background-size: cover;
     background-blend-mode: overlay;
     position: relative;
     align-items: center;
+    font-size: .8em;
 
     &:after {
       content: '';
@@ -318,33 +398,19 @@
     }
 
     &.trades__item--sell {
-      background-color: lighten($red, 35%);
-      color: $red;
-
-      &.trades__item--significant {
-        background-color: $red;
-      }
-
       .icon-side:before {
         content: unicode($icon-down);
       }
     }
 
     &.trades__item--buy {
-      background-color: lighten($green, 50%);
-      color: $green;
-
-      &.trades__item--significant {
-        background-color: $green;
-      }
-
       .icon-side:before {
         content: unicode($icon-up);
       }
     }
 
     &.trades__item--significant {
-      color: white;
+      font-size: .92em;
     }
 
     &.trades__item--liquidation {
@@ -352,7 +418,8 @@
     }
 
     &.trades__item--huge {
-      padding: 8px 7px;
+      font-size: 1em;
+      padding: .4em .5em;
 
       > div {
         position: relative;

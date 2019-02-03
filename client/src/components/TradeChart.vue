@@ -193,8 +193,16 @@
             maxPadding: 0,
             tickAmount: 8,
         },{
-            gridLineColor: 'rgba(0, 0, 0, 0)',
-            startOnTick: false,
+          startOnTick: false,
+          alignTicks: false,
+          endOnTick: false,
+          minPadding: 0,
+          maxPadding: .1,
+          max: null,
+          min: null,
+          top: '0%',
+          height: '95%',
+          gridLineColor: 'rgba(0, 0, 0, 0)',
         }],
         exporting: {
           enabled: false
@@ -248,6 +256,9 @@
           data: [],
           color: this.priceLineColor,
           animation: false,
+          dataLabels: {
+            enabled: false
+          },
           lineWidth: 2,
           marker: {
             symbol: 'circle',
@@ -648,20 +659,14 @@
               if (opens.length) {
                 this.tick = {
                   exchanges: {},
-                  size: 0,
-                  prices: 0
+                  size: 0
                 }
 
                 for (let name of opens) {
                   this.tick.exchanges[name] = {
                     close: socket.opens[name],
-                    prices: socket.opens[name],
-                    size: 1,
                     empty: true
                   }
-
-                  this.tick.size++;
-                  this.tick.prices += socket.opens[name];
                 }
               }
             }
@@ -671,29 +676,22 @@
               exchanges: this.tick ? this.tick.exchanges : {},
               buys: 0,
               sells: 0,
-              size: this.tick ? this.tick.size : 0,
-              prices: this.tick ? this.tick.prices : 0,
+              size: 0
             };
           }
 
           if (!this.tick.exchanges[data[i][0]]) {
             this.tick.exchanges[data[i][0]] = {
-              prices: 0,
               size: 0
             };
           }
 
           if (this.tick.exchanges[data[i][0]].empty) {
             this.tick.exchanges[data[i][0]].empty = false;
-            
-            this.tick.size -= this.tick.exchanges[data[i][0]].size;
-            this.tick.exchanges[data[i][0]].size = 0;
-            this.tick.exchanges[data[i][0]].prices = 0;
           }
 
-          this.tick.exchanges[data[i][0]].prices += (data[i][2] * data[i][3]);
-          this.tick.exchanges[data[i][0]].close = (+data[i][2]);
-          this.tick.exchanges[data[i][0]].size += (+data[i][3]);
+          this.tick.exchanges[data[i][0]].close = +data[i][2];
+          this.tick.exchanges[data[i][0]].size += +data[i][3];
           this.tick.size += (+data[i][3]);
           this.tick[data[i][4] > 0 ? 'buys' : 'sells'] += (data[i][3] * data[i][2]);
 
@@ -711,8 +709,6 @@
       },
 
       tickToPoint(tick, getPriceIndex = true) {
-        let typical = parseFloat(this.priceIndex);
-
         if (getPriceIndex) {
           /* simple weight average price over exchanges
           */
@@ -720,39 +716,22 @@
           const closes = [];
 
           for (let name in tick.exchanges) {
-            const exchange = tick.exchanges[name];
-
-            let price;
-
-            if (exchange.empty) {
-              price = exchange.close;
-            } else {
-              price = exchange.prices / exchange.size;
-            }
-
-            closes.push([exchange.close, exchange.size]);
-
-            tick.high = isNaN(tick.high) ? price : Math.max(tick.high, price);
-            tick.low = isNaN(tick.low) ? price : Math.min(tick.low, price);
+            closes.push(tick.exchanges[name].close);
           }
 
-          tick.close = closes.map(a => a[0]).reduce((a, b) => a + b) / closes.length;
-
-          /* get period typical price
-          */
-          typical = (tick.high + tick.low + tick.close) / 3;
+          tick.close = closes.reduce((a, b) => a + b) / closes.length;
 
           /* average the price
           */
-          const cumulatives = this.averages.concat([[typical, tick.buys + tick.sells]]);
+          const cumulatives = this.averages.concat([[tick.close, tick.buys + tick.sells]]);
 
           if (this.averages && options.avgPeriods > 0 && cumulatives.length > 1) {
             this.priceIndex = cumulatives.map(a => a[0]).reduce((a, b) => a + b) / cumulatives.length;
           } else {
-            this.priceIndex = typical;
+            this.priceIndex = tick.close;
           }
 
-          /* determine tab lagging indicator
+          /* determine tab up/down
           */
           const lastPrices = this.chart.series[0].yData.slice(-5);
           let direction = lastPrices.length > 2 ? (this.priceIndex > lastPrices.reduce((a, b) => a + b) / lastPrices.length ? 'up' : 'down') : 'neutral';

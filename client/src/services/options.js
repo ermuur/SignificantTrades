@@ -14,6 +14,20 @@ const emitter = new Vue({
       significantTradeThreshold: 100000,
       hugeTradeThreshold: 1000000,
       rareTradeThreshold: 10000000,
+      colors: {
+        buys: [
+          '#4caf50',
+          '#5b8230',
+          '#9ccc65',
+          '#FFA000',
+        ],
+        sells: [
+          '#e57373',
+          '#e05b52',
+          '#f44336',
+          '#e91e63'
+        ],
+      },
       useShades: true,
       useAudio: false,
       audioIncludeAll: true,
@@ -37,15 +51,6 @@ const emitter = new Vue({
       } else {
         this.exchanges.splice(index, 1);
       }
-    },
-    show() {
-      this.$emit('open');
-    },
-    hide() {
-      this.$emit('close');
-    },
-    toggle() {
-      this.$emit('toggle');
     },
     follow(state) {
       this.$emit('follow', state);

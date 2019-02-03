@@ -1,7 +1,8 @@
 <template>
-  <div class="settings__container stack__container" v-bind:class="{ open: opened }" v-bind:style="{ maxHeight: height + 'px' }">
+  <div class="settings__container stack__container open">
+    <chrome-picker v-if="picking !== null" ref="picker" :value="options.colors[picking.side][picking.index]" @input="updateColor"></chrome-picker>
     <div class="stack__wrapper" ref="settingsWrapper">
-      <a href="#" class="stack__toggler icon-cross" v-on:click="hideSettings"></a>
+      <a href="#" class="stack__toggler icon-cross" @click="$emit('close')"></a>
       <div class="settings__title" v-on:click="toggleSection('basics')" v-bind:class="{closed: options.settings.indexOf('basics') > -1}">Basics <i class="icon-up"></i></div>
         <div class="form-group">
         <label>Max rows <span class="icon-info-circle" v-bind:title="help.maxRows" v-tippy></span></label>
@@ -52,18 +53,35 @@
         </div>
       </div>
       <div class="mt8 settings__title" v-on:click="toggleSection('thresholds')" v-bind:class="{closed: options.settings.indexOf('thresholds') > -1}">Thresholds <i class="icon-up"></i></div>
-      <div class="settings__thresholds settings__column">
+      <div class="settings__thresholds">
         <div class="form-group">
-          <label><span>Trades </span>&lt; <i class="icon-currency"></i> <editable :content.sync="options.threshold"></editable> won't show up<span class="icon-info-circle" v-bind:title="help.threshold" v-tippy></span></label>
-          <label><span>Trades </span>&lt; <i class="icon-currency"></i> <editable :content.sync="options.significantTradeThreshold"></editable> = <u>significant</u> <span class="icon-info-circle" v-bind:title="help.significantTradeThreshold" v-tippy></span></label>
-          <label><span>Trades </span>&lt; <i class="icon-currency"></i> <editable :content.sync="options.hugeTradeThreshold"></editable> = <strong>huge</strong> <span class="icon-info-circle" v-bind:title="help.hugeTradeThreshold" v-tippy></span></label>
-          <label><span>Trades </span>&lt; <i class="icon-currency"></i> <editable :content.sync="options.rareTradeThreshold"></editable> = <strong><i>rare</i></strong> <span class="icon-info-circle" v-bind:title="help.rareTradeThreshold" v-tippy></span></label>
-        </div>
-        <div class="form-group" title="Use dynamic shades of green/red to highlight the amount of each significant+ trades" v-tippy>
-          <div class="shades" v-bind:class="{active: options.useShades}"></div>
-          <label class="checkbox-control flex-right">
-            <input type="checkbox" class="form-control" v-model="options.useShades">
-            <div></div>
+          <label class="settings__thresholds__step">
+            <span>Base</span> 
+            <i class="icon-currency"></i> <editable :content.sync="options.threshold"></editable> 
+            <span class="color color--buys" :style="{ 'color': options.colors.buys[0] }" @click="openPicker('buys', 0, $event)">{{ options.colors.buys[0] }}</span>
+            <span class="color color--sells" :style="{ 'color': options.colors.sells[0] }" @click="openPicker('sells', 0, $event)">{{ options.colors.sells[0] }}</span>
+            <i class="icon-info-circle" v-bind:title="help.threshold" v-tippy></i>
+          </label>
+          <label class="settings__thresholds__step">
+            <span>Significant</span>
+            <i class="icon-currency"></i>
+            <editable :content.sync="options.significantTradeThreshold"></editable>
+            <span class="color color--buys" :style="{ 'color': options.colors.buys[1] }" @click="openPicker('buys', 1, $event)">{{ options.colors.buys[1] }}</span>
+            <span class="color color--sells" :style="{ 'color': options.colors.sells[1] }" @click="openPicker('sells', 1, $event)">{{ options.colors.sells[1] }}</span>
+            <i class="icon-info-circle" v-bind:title="help.significantTradeThreshold" v-tippy></i>
+          </label>
+          <label class="settings__thresholds__step">
+            <span>Huge</span>
+            <i class="icon-currency"></i> <editable :content.sync="options.hugeTradeThreshold"></editable>
+            <span class="color color--buys" :style="{ 'color': options.colors.buys[2] }" @click="openPicker('buys', 2, $event)">{{ options.colors.buys[2] }}</span>
+            <span class="color color--sells" :style="{ 'color': options.colors.sells[2] }" @click="openPicker('sells', 2, $event)">{{ options.colors.sells[2] }}</span>
+            <i class="icon-info-circle" v-bind:title="help.hugeTradeThreshold" v-tippy></i>
+          </label>
+          <label class="settings__thresholds__step">
+            <span>Rare</span> <i class="icon-currency"></i> <editable :content.sync="options.rareTradeThreshold"></editable>
+            <span class="color color--buys" :style="{ 'color': options.colors.buys[3] }" @click="openPicker('buys', 3, $event)">{{ options.colors.buys[3] }}</span>
+            <span class="color color--sells" :style="{ 'color': options.colors.sells[3] }" @click="openPicker('sells', 3, $event)">{{ options.colors.sells[3] }}</span>
+            <i class="icon-info-circle" v-bind:title="help.rareTradeThreshold" v-tippy></i>
           </label>
         </div>
       </div>
@@ -108,17 +126,23 @@
 </template>
 
 <script>
+  import Vue from 'vue'
+  import { Chrome } from 'vue-color'
+
   import options from '../services/options'
   import socket from '../services/socket'
 
   export default {
+    components: {
+      'chrome-picker': Chrome
+    },
     data() {
       return {
         exchanges: [],
         options: options,
-        opened: false,
         restricted: true,
         height: 0,
+        picking: null,
         help: {
           pair: `The pair to aggregate from<br><small><i>special access required</i></small>`,
           avgPeriods: `Define how many periods are used to smooth the chart<br><ol><li>Exchange prices are averaged <strong>within</strong> the tick first (using weighed average in that timeframe if enabled, if not then the close value is used)</li><li>If cumulated periods are > 1 then the price is averaged (using weighed or simple average) using the number of periods you choosed right there (2 by default)</li></ol>`,
@@ -142,49 +166,52 @@
 
       socket.$on('admin', () => this.restricted = false);
 
+      this.exchanges = socket.exchanges;
+
       socket.$on('exchanges', exchanges => {
         this.exchanges = exchanges;
-
-        if (!options.exchanges.length) {
-          options.exchanges = this.exchanges.filter(exchange => ['bithumb', 'hitbtc'].indexOf(exchange) === -1);
-        }
-
-        setTimeout(() => this.refreshHeight(), 10);
       });
-
-      this.onopen = () => {
-        this.refreshHeight();
-        this.opened = true;
-      };
-      this.onclose = () => this.opened = false;
-      this.ontoggle = () => {
-        if (this.opened) {
-          this.onclose();
-        } else {
-          this.onopen();
-        }
-      };
     },
     mounted() {
-      options.$on('open', this.onopen);
-      options.$on('close', this.onclose);
-      options.$on('toggle', this.ontoggle);
+      this._closePicker = this.closePicker.bind(this);
+
+      this.$el.addEventListener('click', this._closePicker);
     },
     beforeDestroy() {
-      options.$off('open', this.onopen);
-      options.$off('close', this.onclose);
-      options.$off('toggle', this.ontoggle);
+      this.$el.removeEventListener('click', this._closePicker);
     },
     methods: {
-      refreshHeight() {
-        this.height = this.$refs.settingsWrapper.clientHeight;
-      },
-      hideSettings() {
-        options.hide();
-      },
       switchPair(event) {
         socket.$emit('alert');
         socket.send('pair', options.pair);
+      },
+      openPicker(side, index, $event) {
+        this.picking = { side, index };
+
+        setTimeout(() => {
+          this.$refs.picker.$el.style.left = Math.min(window.innerWidth - this.$refs.picker.$el.clientWidth - 16, $event.target.offsetLeft) + 'px';
+          this.$refs.picker.$el.style.top = ($event.pageY + 16) + 'px';
+        })
+
+        $event.stopPropagation();
+      },
+      closePicker($event) {
+        if (this.$refs.picker && this.$refs.picker.$el.contains($event.target)) {
+          $event.preventDefault();
+
+          return;
+        }
+        
+        this.picking = null;
+      },
+      updateColor(color) {
+        if (!this.picking) {
+          return;
+        }
+
+        Vue.set(options.colors[this.picking.side], this.picking.index, color.hex);
+
+        options.onChange('colors', options.colors);
       },
       toggleSection(name) {
         const index = options.settings.indexOf(name);
@@ -194,8 +221,6 @@
         } else {
           options.settings.splice(index, 1);
         }
-
-        setTimeout(() => this.refreshHeight(), 10);
       },
       save() {
         localStorage.setItem('options', JSON.stringify(options.$data));
@@ -213,12 +238,34 @@
 <style lang="scss">
 	@import '../assets/sass/variables';
 
+  .vc-chrome {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    z-index: 1;
+
+    animation: .5s $easeOutExpo picker-in;
+  }
+
+  @keyframes picker-in {
+    from {
+      opacity: 0;
+      transform: translateY(-10%);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0%);
+    }
+  }
+
   .settings__container {
     background-color: #222;
     color: white;
+    overflow: visible;
 
     .stack__wrapper {
       padding: 20px;
+      overflow: visible;
     }
 
     a {
@@ -552,51 +599,39 @@
     .settings__thresholds {
       padding-bottom: 4px;
 
-      .shades {
-        width: 1.5em;
-        height: 1.5em;
-        margin-bottom: .8em;
-        border-radius: 50%;
-        background-color: $green;
-        box-shadow: 0 0 0 $green - 30%, 0 0 0 $green - 60%;
-        transition: all .4s $easeElastic;
-
-        &.active {
-          width: 1em;
-          height: 1em;
-          margin-bottom: 1.2em;
-          box-shadow: 0.4em 0.6em 0 $green - 30%, -0.4em 0.6em 0 $green - 60%;
-        }
-      }
-
       .form-group {
         flex-basis: auto;
         flex-grow: 0;
         max-width: none;
+      }
 
-        &:first-child {
+      .settings__thresholds__step {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+
+        > i {
+          top: -1px;
+          margin: 0 5px;
+        }
+
+        > .color {
+          font-weight: 600;
+          margin-right: 4px;
+        }
+
+        > [contenteditable] {
           flex-grow: 1;
         }
 
-        &:last-child {
-          padding: 0 10px;
-          justify-content: center;
-          align-items: center;
-          display: flex;
+        > :nth-child(1) {
+          flex-basis: 60px;
+          justify-self: flex-start;
         }
       }
 
       .label {
         margin-bottom: 2px;
-      }
-
-      span {
-        margin-right: 4px;
-        display: none;
-
-        @media only screen and (min-width: 320px) {
-          display: inline-block;
-        }
       }
 
       .icon-currency {

@@ -9,7 +9,7 @@
       <span class="icon-history"></span>
     </button>
     <button type="button" v-on:click="toggleFollow" v-bind:title="following ? 'Stop live mode' : 'Go live mode'" v-tippy="{placement: 'bottom'}"><span class="icon-play" v-bind:class="{following: following}"></span></button>
-    <button type="button" v-on:click="toggleSettings"><span class="icon-cog"></span></button>
+    <button type="button" v-on:click="$emit('toggleSettings')"><span class="icon-cog"></span></button>
   </header>
 </template>
 
@@ -71,9 +71,6 @@
       setTimeout(() => this.created = true, 2000);
     },
     methods: {
-      toggleSettings() {
-        options.toggle();
-      },
       retrieveChart() {
         if (this.dashoffset) {
           return;

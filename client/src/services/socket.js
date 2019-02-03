@@ -82,6 +82,10 @@ const emitter = new Vue({
                 .filter(exchange => exchange.connected)
                 .map(exchange => exchange.id);
 
+              if (!options.exchanges.length) {
+                options.exchanges = this.exchanges.filter(exchange => ['bithumb', 'hitbtc'].indexOf(exchange) === -1);
+              }
+
               this.delay = data.timestamp ? data.timestamp - +new Date() : 0;
               this.delayed = Math.abs(this.delay) > 2000;
 

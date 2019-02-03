@@ -1,9 +1,9 @@
 <template>
   <div id="app" :data-currency="currency" :data-commodity="commodity" :data-symbol="symbol" :data-pair="pair">
-    <Settings/>
+    <Settings v-if="showSettings" @close="showSettings = false" />
     <div class="app-wrapper">
       <Alerts/>
-      <Header/>
+      <Header @toggleSettings="showSettings = !showSettings" />
       <TradeChart/>
       <TradeList/>
     </div>
@@ -31,6 +31,8 @@
         currency: 'dollar',
         commodity: 'bitcoin',
         symbol: '$',
+
+        showSettings: false
       }
     },
     created() {
@@ -85,9 +87,17 @@
 
         return amount;
       }
+
+      window.showTrade = (amount = 30, side = 1, price = 3500, exchange = 'bitmex') => {
+        let ref = socket.trades.slice().reverse().find(trade => trade[0] === exchange);
+
+        socket.$emit('trades', [
+          [ref[0] || exchange || 'bitmex', +new Date(), price || ref[2] || 3500, amount, side]
+        ]);
+      }
     },
     mounted() {
-      socket.fetch(1, null, true, false)
+      socket.fetch(10, null, true, false)
         .then((response, err) => {
           !err && socket.connect();
         }).catch(error => {
@@ -200,26 +210,6 @@
         &.increase {
           color: saturate($green, 25%);
         }
-      }
-    }
-
-    .trades__item.trades__item--sell {
-      color: $red;
-      background-color: rgba($red, .1);
-
-      &.trades__item--significant {
-        background-color: $red;
-        color: white;
-      }
-    }
-
-    .trades__item.trades__item--buy {
-      color: $green;
-      background-color: rgba($green, .1);
-
-      &.trades__item--significant {
-        background-color: $green;
-        color: white;
       }
     }
   }
