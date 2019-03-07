@@ -427,7 +427,7 @@ export default {
               align: 'center',
               style: {
                 fontWeight: '400',
-                color: 'rgba(255, 255, 255, .3)',
+                color: 'rgba(255, 255, 255, .5)',
                 textOutline: false
               }
             },
