@@ -1,14 +1,19 @@
 <template>
   <header class="header">
     <div class="header__title"><span class="icon-currency"></span> <span v-html="title"></span></div>
-    <button type="button" v-if="!isPopupMode" v-on:click="togglePopup" title="Open as popup" v-tippy="{placement: 'bottom'}"><span class="icon-external-link"></span></button>
-    <button type="button" v-on:click="retrieveChart" v-bind:title="fetchLabel" v-tippy="{placement: 'bottom'}">
+    <button type="button" v-if="!isPopupMode" v-on:click="togglePopup" title="Open as popup" v-tippy="{ theme: 'blue', placement: 'bottom', arrow: true }"><span class="icon-external-link"></span></button>
+    <button type="button" v-on:click="retrieveChart" v-bind:title="fetchLabel" v-tippy="{ theme: 'blue', placement: 'bottom', arrow: true }">
       <svg class="loader" v-bind:class="{loading: dashoffset > 0}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 14 14">
         <path :stroke-dashoffset="dashoffset" d="M7,1a6.06,6.06,0,0,1,6,6,6.06,6.06,0,0,1-6,6A6.06,6.06,0,0,1,1,7,6.06,6.06,0,0,1,7,1Z"/>
       </svg>
       <span class="icon-history"></span>
     </button>
-    <button type="button" v-on:click="toggleFollow" v-bind:title="following ? 'Stop live mode' : 'Go live mode'" v-tippy="{placement: 'bottom'}"><span class="icon-play" v-bind:class="{following: following}"></span></button>
+    <button type="button" v-on:click="toggleFollow" v-bind:title="following ? 'Stop live mode' : 'Go live mode'" v-tippy="{ theme: 'blue', placement: 'bottom', arrow: true }"><span class="icon-play" v-bind:class="{following: following}"></span></button>
+    <button type="button" 
+      v-bind:class="{active: useAudio}"
+      v-on:click="toggleAudio" title="Toggle audio" v-tippy="{ theme: 'blue', placement: 'bottom', arrow: true }">
+      <span class="icon-volume-muted"></span>
+    </button>
     <button type="button" v-on:click="$emit('toggleSettings')"><span class="icon-cog"></span></button>
   </header>
 </template>
@@ -26,6 +31,9 @@
         following: true,
         isPopupMode: window.opener !== null
       }
+    },
+    computed: {
+      useAudio: () => options.useAudio
     },
     created() {
       this._fetchLabel = this.fetchLabel.substr();
@@ -90,6 +98,9 @@
       },
       toggleFollow() {
         options.follow(!this.following);
+      },
+      toggleAudio() {
+        options.useAudio = !options.useAudio;
       },
       togglePopup() {
         window.open(window.location.href, 'Hey hey hey', 'toolbar=no,status=no,width=350,height=500');
@@ -193,6 +204,10 @@
         }
       }
 
+      .icon-volume-muted {
+        font-size: 1.25em;
+      }
+
       &:hover,
       &:active {
         .icon-external-link {
@@ -215,6 +230,22 @@
           transform: rotateZ(-360deg) scale(1.1);
           display: inline-block;
           text-shadow: 0 0 20px $red, 0 0 2px white;
+        }
+
+        .icon-volume-muted {
+          transform: rotateZ(-7deg) scale(1.1);
+          text-shadow: 0 0 20px $blue, 0 0 2px $blue;
+        }
+      }
+
+      &.active {
+        .icon-volume-muted {
+          transform: rotateZ(-7deg) scale(1.1);
+          text-shadow: 0 0 20px $blue, 0 0 2px $blue;
+
+          &:before {
+            content: unicode($icon-volume);
+          }
         }
       }
     }

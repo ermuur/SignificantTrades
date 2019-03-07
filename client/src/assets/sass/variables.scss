@@ -33,6 +33,8 @@ $icon-night: \e916;
 $icon-day: \e917;
 $icon-cross: \e918;
 $icon-expand: \e909;
+$icon-volume-muted: \e919;
+$icon-volume: \e91a;
 
 @function unicode($str) {
   @return unquote("\"") + $str + unquote("\"");

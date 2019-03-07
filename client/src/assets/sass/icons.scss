@@ -150,4 +150,14 @@ $iconpath: 'assets/fonts';
     content: unicode($icon-expand); 
   }
 }
+.icon-volume-muted {
+  &:before {
+    content: unicode($icon-volume-muted); 
+  }
+}
+.icon-volume {
+  &:before {
+    content: unicode($icon-volume); 
+  }
+}
 

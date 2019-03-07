@@ -172,6 +172,18 @@
   .tippy-tooltip {
     &.black-theme {
       background-color: rgba(black, .9);
+
+      .tippy-arrow {
+        border-bottom-color: rgba(black, .9);
+      }
+    }
+
+    &.blue-theme {
+      background-color: rgba($blue, .9);
+
+      .tippy-arrow {
+        border-bottom-color: rgba($blue, .9);
+      }
     }
 
     ul, ol {
