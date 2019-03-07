@@ -11,7 +11,7 @@ Vue.use(VueTippy, {
   size: 'small',
   delay: 0,
   animateFill: false,
-  theme: 'blue'
+  theme: 'black'
 });
 
 Vue.component('editable', {

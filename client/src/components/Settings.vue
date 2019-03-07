@@ -24,16 +24,23 @@
         </div>
         <div class="settings__plots settings__column">
           <div class="form-group">
-            <label class="checkbox-control flex-right" v-tippy title="Shows significants orders on the chart">
+            <label class="checkbox-control flex-right" v-tippy title="Shows significants orders (huge+) on the chart">
               <input type="checkbox" class="form-control" v-model="options.showPlotsSignificants">
-              <span>Show {{options.hugeTradeThreshold}}+</span>
+              <span>{{options.hugeTradeThreshold}}+</span>
               <div></div>
             </label>
           </div>
           <div class="form-group">
-            <label class="checkbox-control flex-right" v-tippy title="Shows liquidations on the chart">
+            <label class="checkbox-control flex-right" v-tippy title="Shows liquidations bars on the chart">
               <input type="checkbox" class="form-control" v-model="options.showPlotsLiquidations">
-              <span>Show liquidations</span>
+              <span>Liquidations</span>
+              <div></div>
+            </label>
+          </div>
+          <div class="form-group">
+            <label class="checkbox-control flex-right" v-tippy title="Shows annotation on top of highest buys/sells">
+              <input type="checkbox" class="form-control" v-model="options.showPlotsHighs">
+              <span>Volume highs</span>
               <div></div>
             </label>
           </div>
@@ -56,8 +63,8 @@
       <div class="settings__thresholds">
         <div class="form-group">
           <label class="settings__thresholds__step">
-            <span>Base</span> 
-            <i class="icon-currency"></i> <editable :content.sync="options.threshold"></editable> 
+            <span>Base</span>
+            <i class="icon-currency"></i> <editable :content.sync="options.threshold"></editable>
             <span class="color color--buys" :style="{ 'color': options.colors.buys[0] }" @click="openPicker('buys', 0, $event)">{{ options.colors.buys[0] }}</span>
             <span class="color color--sells" :style="{ 'color': options.colors.sells[0] }" @click="openPicker('sells', 0, $event)">{{ options.colors.sells[0] }}</span>
             <i class="icon-info-circle" v-bind:title="help.threshold" v-tippy></i>
@@ -201,7 +208,7 @@
 
           return;
         }
-        
+
         this.picking = null;
       },
       updateColor(color) {

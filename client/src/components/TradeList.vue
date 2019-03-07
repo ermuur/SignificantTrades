@@ -86,7 +86,7 @@
           case 'colors':
             this.refreshColorsPercentages();
             this.trades.splice(0, this.trades.length);
-            
+
             clearTimeout(this._refreshColorRenderList);
 
             this._refreshColorRenderList = setTimeout(() => {
@@ -107,7 +107,7 @@
       },
       onTrades(trades, silent = false) {
         for (let trade of trades) {
-          if (options.exchanges.indexOf(trade[0]) === -1) {
+          if (options.exchanges && options.exchanges.indexOf(trade[0]) === -1) {
             continue;
           }
 
@@ -121,7 +121,7 @@
             }
             continue;
           }
-          
+
           if (options.useAudio && ((options.audioIncludeAll && size > options.threshold * .1) || size > options.significantTradeThreshold)) {
             this.sfx && !silent && this.sfx.tradeToSong(size / options.significantTradeThreshold, trade[4]);
           }
@@ -172,7 +172,7 @@
         } else {
           classname.push('sell');
         }
-          
+
         if (amount >= options.significantTradeThreshold) {
           classname.push('significant');
         }
@@ -250,9 +250,9 @@
           }
         });
       },
-      refreshColorsPercentages() {  
+      refreshColorsPercentages() {
         this.colors = {};
-      
+
         const thresholds = [
           0,
           options.significantTradeThreshold,
@@ -323,7 +323,7 @@
 
         const opacity = +(.33 + Math.min(.66, amount / options.significantTradeThreshold * .66)).toFixed(2);
         let luminance = Math.sqrt(0.299 * Math.pow(color.r, 2) + 0.587 * Math.pow(color.g, 2) + 0.114 * Math.pow(color.b, 2));
-        
+
         if (opacity < 1) {
           if (options.dark) {
             luminance *= opacity;
@@ -336,7 +336,7 @@
           background: 'rgba(' + [color.r, color.g, color.b, opacity].join(',') + ')',
           foreground: 'rgba(' + (luminance > 200 ? '0,0,0' : '255,255,255') + ',' + Math.min(1, opacity * 1.25) + ')'
         }
-      }  
+      }
     }
   }
 </script>
@@ -463,7 +463,6 @@
 
       &.trades__item__exchange {
         flex-grow: .75;
-        min-width: 70px;
 
         small {
           opacity: .8;

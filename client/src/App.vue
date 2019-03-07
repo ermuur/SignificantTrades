@@ -37,6 +37,25 @@
     },
     created() {
       const settings = JSON.parse(localStorage.getItem('options'));
+      
+      let qs;
+
+      try {
+        qs = JSON.parse('{"' + decodeURI(location.search.substring(1))
+        .replace(/"/g, '\\"')
+        .replace(/&/g, '","')
+        .replace(/=/g,'":"') + '"}');
+      } catch (error) {
+        qs = {};
+      }
+
+      for (let name in qs) {
+        try {
+          const value = JSON.parse(qs[name]);
+
+          settings[name] = value;
+        } catch (error) {}
+      }
 
       socket.$on('pair', pair => {
         this.pair = options.pair = pair;
@@ -88,11 +107,11 @@
         return amount;
       }
 
-      window.showTrade = (amount = 30, side = 1, price = 3500, exchange = 'bitmex') => {
+      window.showTrade = (amount = 30, side = 1, price = 3500, exchange = 'bitmex', liquidation = false) => {
         let ref = socket.trades.slice().reverse().find(trade => trade[0] === exchange);
 
         socket.$emit('trades', [
-          [ref[0] || exchange || 'bitmex', +new Date(), price || ref[2] || 3500, amount, side]
+          [ref[0] || exchange || 'bitmex', +new Date(), price || ref[2] || 3500, amount, side, liquidation ? 1 : null]
         ]);
       }
     },
@@ -151,8 +170,8 @@
   }
 
   .tippy-tooltip {
-    &.blue-theme {
-      background-color: $blue;
+    &.black-theme {
+      background-color: rgba(black, .9);
     }
 
     ul, ol {

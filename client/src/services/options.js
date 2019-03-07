@@ -8,7 +8,7 @@ const emitter = new Vue({
       pair: 'BTCUSD',
       avgPeriods: 2,
       timeframe: '1.5%',
-      exchanges: [],
+      exchanges: null,
       debug: false,
       dark: true,
       significantTradeThreshold: 100000,
@@ -35,6 +35,7 @@ const emitter = new Vue({
       settings: [],
       showPlotsSignificants: false,
       showPlotsLiquidations: false,
+      showPlotsHighs: true,
     }
   },
   created() {

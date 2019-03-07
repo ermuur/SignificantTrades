@@ -82,7 +82,7 @@ const emitter = new Vue({
                 .filter(exchange => exchange.connected)
                 .map(exchange => exchange.id);
 
-              if (!options.exchanges.length) {
+              if (options.exchanges === null) {
                 options.exchanges = this.exchanges.filter(exchange => ['bithumb', 'hitbtc'].indexOf(exchange) === -1);
               }
 
