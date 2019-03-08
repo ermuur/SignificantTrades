@@ -151,9 +151,14 @@
       border: 0;
       background: none;
       color: white;
-      padding: 6px 10px 5px;
-      font-size: 20px;
+      padding: 6px 6px 5px;
+      font-size: 16px;
       position: relative;
+
+      @media screen and (min-width: 320px) {
+        padding: 6px 10px 5px;
+        font-size: 20px;
+      }
 
       align-self: stretch;
       cursor: pointer;

@@ -130,7 +130,7 @@
             this.sfx && !silent && this.sfx.liquidation();
 
             if (size >= options.threshold) {
-              this.appendRow(trade, ['liquidation'], `${app.getAttribute('data-symbol')}<strong>${formatAmount(size, 1)}</strong> liquidated <strong>${trade[4] ? 'SHORT' : 'LONG'}</strong> @ ${app.getAttribute('data-symbol')}${formatPrice(trade[2])}`);
+              this.appendRow(trade, ['liquidation'], `${app.getAttribute('data-symbol')}<strong>${formatAmount(size, 1)}</strong> liquidated <strong>${trade[4] > 0 ? 'SHORT' : 'LONG'}</strong> @ ${app.getAttribute('data-symbol')}${formatPrice(trade[2])}`);
             }
             continue;
           }
@@ -180,7 +180,7 @@
         let amount = trade[2] * trade[3];
         let color = this.getTradeColor(trade);
 
-        if (trade[4]) {
+        if (trade[4] > 0) {
           classname.push('buy');
         } else {
           classname.push('sell');
@@ -216,7 +216,7 @@
           id: Math.random().toString(36).substring(7),
           background: color.background,
           foreground: color.foreground,
-          side: trade[4] ? 'BUY' : 'SELL',
+          side: trade[4] > 0 ? 'BUY' : 'SELL',
           size: trade[3],
           exchange: trade[0],
           price: formatPrice(trade[2]),
@@ -314,7 +314,7 @@
       getTradeColor(trade) {
         const amount = trade[2] * trade[3];
         const pct = amount / options.rareTradeThreshold;
-        const palette = this.colors[trade[4] ? 'buys': 'sells'];
+        const palette = this.colors[trade[4] > 0 ? 'buys': 'sells'];
 
         for (var i = 1; i < palette.length - 1; i++) {
           if (pct < palette[i].pct) {
@@ -377,6 +377,10 @@
 
     &.-compact {
       font-size: .80em;
+
+      .trades__item__date {
+        flex-basis: 32px;
+      }
     }
   }
 
