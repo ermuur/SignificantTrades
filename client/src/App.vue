@@ -36,6 +36,12 @@
       }
     },
     created() {
+      this.$root.autoSaveHandler = () => {
+        localStorage.setItem('options', JSON.stringify(options.$data));
+      };
+
+      window.addEventListener('beforeunload', this.$root.autoSaveHandler);
+
       const settings = JSON.parse(localStorage.getItem('options'));
       
       let qs;
@@ -116,7 +122,7 @@
       }
     },
     mounted() {
-      socket.fetch(1, null, true, false)
+      socket.fetch(15, null, true, false)
         .then((response, err) => {
           !err && socket.connect();
         }).catch(error => {

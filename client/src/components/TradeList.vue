@@ -1,5 +1,5 @@
 <template>
-  <div class="trades">
+  <div class="trades" :class="{ '-compact': compactRows }">
     <ul v-if="trades.length">
       <li v-for="trade in trades" class="trades__item" :key="trade.id" :class="trade.classname" :style="{ 'background-image': trade.image, 'background-color': trade.background, 'color': trade.foreground }">
         <template v-if="trade.message">
@@ -37,6 +37,9 @@
         trades: [],
         gifs: []
       }
+    },
+    computed: {
+      compactRows: () => options.compactRows
     },
     created() {
       this.getGifs();
@@ -371,12 +374,16 @@
       display: flex;
       flex-flow: column nowrap;
     }
+
+    &.-compact {
+      font-size: .80em;
+    }
   }
 
   .trades__item {
     display: flex;
     flex-flow: row nowrap;
-    padding: .25em .5em;
+    padding: .28em .5em;
     background-position: center center;
     background-size: cover;
     background-blend-mode: overlay;
@@ -462,9 +469,8 @@
 
       &.trades__item__side {
         flex-grow: 0;
-        flex-basis: 20px;
-        font-size: 18px;
-        line-height: 1.06;
+        flex-basis: 1.14em;
+        font-size: 1.22em;
 
         + .trades__item__message {
           margin-left: 7px;

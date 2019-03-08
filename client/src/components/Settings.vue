@@ -4,9 +4,18 @@
     <div class="stack__wrapper" ref="settingsWrapper">
       <a href="#" class="stack__toggler icon-cross" @click="$emit('close')"></a>
       <div class="settings__title" v-on:click="toggleSection('basics')" v-bind:class="{closed: options.settings.indexOf('basics') > -1}">Basics <i class="icon-up"></i></div>
+      <div class="settings__list settings__column">
         <div class="form-group">
-        <label>Max rows <span class="icon-info-circle" v-bind:title="help.maxRows" v-tippy></span></label>
-        <input type="number" min="0" max="1000" step="1" class="form-control" v-model="options.maxRows">
+          <label>Max rows <span class="icon-info-circle" v-bind:title="help.maxRows" v-tippy></span></label>
+          <input type="number" min="0" max="1000" step="1" class="form-control" v-model="options.maxRows">
+        </div>
+        <div class="form-group">
+          <label>&nbsp;</label>
+          <label class="checkbox-control flex-right" v-tippy title="Use compact rows">
+            <input type="checkbox" class="form-control" v-model="options.compactRows">
+            <div></div>
+          </label>
+        </div>
       </div>
       <div class="mt8 settings__title" v-on:click="toggleSection('chart')" v-bind:class="{closed: options.settings.indexOf('chart') > -1}">Chart <i class="icon-up"></i></div>
       <div>
@@ -164,13 +173,10 @@
         version: {
           number: process.env.VERSION || 'DEV',
           date: process.env.BUILD_DATE || 'now'
-        },
-        autosaveHandler: this.save.bind(this),
+        }
       }
     },
     created() {
-      window.addEventListener('beforeunload', this.autosaveHandler);
-
       socket.$on('admin', () => this.restricted = false);
 
       this.exchanges = socket.exchanges;
@@ -229,11 +235,8 @@
           options.settings.splice(index, 1);
         }
       },
-      save() {
-        localStorage.setItem('options', JSON.stringify(options.$data));
-      },
       reset() {
-        window.removeEventListener('beforeunload', this.autosaveHandler);
+        window.removeEventListener('beforeunload', this.$root.autoSaveHandler);
         window.localStorage && window.localStorage.clear();
 
         window.location.reload(true);
@@ -576,6 +579,28 @@
       [contenteditable] {
         &:after {
           content: '+';
+        }
+      }
+    }
+
+    .settings__list {
+      align-items: center;
+
+      .form-group:first-child {
+        flex-grow: 1;
+        flex-basis: auto;
+        max-width: none;
+      }
+
+      .form-group:last-child {
+        flex-grow: 0;
+        flex-basis: auto;
+        position: relative;
+
+        > label:first-child:before {
+          content: 'Compact';
+          position: absolute;
+          right: 0;
         }
       }
     }

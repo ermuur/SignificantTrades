@@ -154,6 +154,8 @@
     >
       <div class="chart__selection" v-bind:style="{left: selection.left, width: selection.width}"></div>
       <div class="chart__canvas"></div>
+
+      <div class="chart__height-handler" ref="chartHeightHandler" v-on:mousedown="startResizeChart" v-on:dblclick.stop.prevent="resetHeight"></div>
     </div>
   </div>
 </template>
@@ -437,6 +439,8 @@ export default {
       ]
     });
 
+    this.updateChartHeight();
+
     if (window.location.hash.indexOf('twitch') !== -1) {
       this.goTwitchMode(true);
     }
@@ -454,13 +458,17 @@ export default {
 
     this.$refs.chartContainer.addEventListener('wheel', this._doZoom);
 
-    this._doScroll = this.doScroll.bind(this);
+    this._doDrag = this.doDrag.bind(this);
 
-    window.addEventListener('mousemove', this._doScroll, false);
+    window.addEventListener('mousemove', this._doDrag, false);
 
-    this._stopScroll = this.stopScroll.bind(this);
+    this._stopDrag = this.stopDrag.bind(this);
 
-    window.addEventListener('mouseup', this._stopScroll, false);
+    window.addEventListener('mouseup', this._stopDrag, false);
+
+    this._doResize = this.doResize.bind(this);
+
+    window.addEventListener('resize', this._doResize, false);
 
     this._shiftTracker = (e => {
       this.shiftPressed = e.shiftKey;
@@ -488,8 +496,8 @@ export default {
     clearInterval(this._trimInvisibleTradesInterval);
 
     this.$refs.chartContainer.removeEventListener('wheel', this._doZoom);
-    window.removeEventListener('mousemove', this._doScroll);
-    window.removeEventListener('mouseup', this._stopScroll);
+    window.removeEventListener('mousemove', this._doDrag);
+    window.removeEventListener('mouseup', this._stopDrag);
     window.removeEventListener('keydown', this._shiftTracker);
     window.removeEventListener('keyup', this._shiftTracker);
     window.removeEventListener('blur', this._shiftTracker);
@@ -663,51 +671,59 @@ export default {
       }
     },
 
-    doScroll(event) {
-      if (this.fetching || isNaN(this.scrolling) || !this.chart.series[0].xData.length) {
-        return;
+    doDrag(event) {
+      if (!isNaN(this.resizing)) {
+        this.updateChartHeight(this.chart.chartHeight + (event.pageY - this.resizing));
+
+        this.resizing = event.pageY;
+      } else if (!isNaN(this.scrolling) && !this.fetching && this.chart.series[0].xData.length) {
+        if (this.shiftPressed) {
+          this.selection.to = event.pageX;
+
+          this.updateTickDetailCursorPosition();
+
+          return;
+        }
+
+        this.timestamp = +new Date();
+
+        const range = this.chart.xAxis[0].max - this.chart.xAxis[0].min;
+        const scale = (range / this.chart.chartWidth) * (this.scrolling - event.pageX);
+
+        let axisMin = this.chart.xAxis[0].min;
+        let axisMax = this.chart.xAxis[0].max;
+
+        axisMin += scale;
+        axisMax += scale;
+
+        const dataMin = this.chart.series[0].xData[0];
+        const dataMax = this.chart.series[0].xData[this.chart.series[0].xData.length - 1];
+
+        if (axisMax > dataMax) {
+          axisMax = dataMax;
+          axisMin = axisMax - range;
+        }
+
+        this.toggleFollow(axisMax === dataMax);
+        this.range = axisMax - axisMin;
+
+        this.updateTickDetailCursorPosition(true);
+
+        this.chart.xAxis[0].setExtremes(axisMin, axisMax);
+
+        this.updateHighs();
+
+        this.scrolling = event.pageX;
       }
-
-      if (this.shiftPressed) {
-        this.selection.to = event.pageX;
-
-        this.updateTickDetailCursorPosition();
-
-        return;
-      }
-
-      this.timestamp = +new Date();
-
-      const range = this.chart.xAxis[0].max - this.chart.xAxis[0].min;
-      const scale = (range / this.chart.chartWidth) * (this.scrolling - event.pageX);
-
-      let axisMin = this.chart.xAxis[0].min;
-      let axisMax = this.chart.xAxis[0].max;
-
-      axisMin += scale;
-      axisMax += scale;
-
-      const dataMin = this.chart.series[0].xData[0];
-      const dataMax = this.chart.series[0].xData[this.chart.series[0].xData.length - 1];
-
-      if (axisMax > dataMax) {
-        axisMax = dataMax;
-        axisMin = axisMax - range;
-      }
-
-      this.toggleFollow(axisMax === dataMax);
-      this.range = axisMax - axisMin;
-
-      this.updateTickDetailCursorPosition(true);
-
-      this.chart.xAxis[0].setExtremes(axisMin, axisMax);
-
-      this.updateHighs();
-
-      this.scrolling = event.pageX;
     },
 
-    stopScroll(event) {
+    stopDrag(event) {
+      if (this.resizing) {
+        options.chartHeight = this.chart.chartHeight;
+
+        delete this.resizing;
+      }
+
       if (this.scrolling) {
         if (this.shiftPressed) {
           const viewbox = this.chart.xAxis[0].max - this.chart.xAxis[0].min;
@@ -736,6 +752,47 @@ export default {
       }
 
       delete this.scrolling;
+    },
+    
+    startResizeChart(event) {
+      if (event.which === 3) {
+        return;
+      }
+
+      this.resizing = event.pageY;
+    },
+
+    resetHeight(event) {
+      delete this.resizing;
+
+      options.chartHeight = null;
+
+      this.updateChartHeight();
+    },
+
+    updateChartHeight(height = null) {
+      if (height === null) {
+        height = this.getChartHeight();
+      }
+
+      this.chart.setSize(
+        null,
+        height,
+        false
+      );
+    },
+
+    getChartHeight() {
+      const w = this.$el.offsetWidth;
+      const h = document.documentElement.clientHeight;
+
+      return options.chartHeight > 0 ? options.chartHeight : +Math.min(w / 3, Math.max(200, h / 3)).toFixed();
+    },
+
+    doResize(event) {
+      clearTimeout(this._resizeTimeout);
+
+      this._resizeTimeout = setTimeout(this.updateChartHeight.bind(this), 250);
     },
 
     //  _____ _      _
@@ -1594,6 +1651,24 @@ export default {
 
   .highcharts-credits {
     visibility: hidden;
+  }
+}
+
+.chart__height-handler {
+  position: absolute;
+  bottom: 0;
+  z-index: 2;
+}
+
+.chart__height-handler {
+  left: 0;
+  right: 0;
+  height: 8px;
+  margin-top: -4px;
+  cursor: row-resize;
+
+  @media screen and (min-width: 768px) {
+    display: none;
   }
 }
 </style>
