@@ -400,7 +400,7 @@ export default {
           data: [],
           marker: {
             enabled: true,
-            lineWidth: 1,
+            lineWidth: 1.5,
             lineColor: 'rgba(0, 0, 0, .5)',
             states: {
               hover: {
@@ -571,6 +571,7 @@ export default {
         case 'avgPeriods':
         case 'showPlotsSignificants':
         case 'showPlotsLiquidations':
+        case 'plotTradeThreshold':
           this.appendTicksToChart(this.getTicks(), true);
           break;
         case 'timeframe':
@@ -582,7 +583,7 @@ export default {
           this.toggleDark(data.value);
           break;
         case 'showPlotsHighs':
-          this.updateHighs();
+          this.updateHighs(0);
           break;
       }
     },
@@ -839,7 +840,7 @@ export default {
         this.tick.size += +data[i][3];
         this.tick[data[i][4] > 0 ? 'buys' : 'sells'] += data[i][3] * data[i][2];
 
-        if (options.showPlotsSignificants && data[i][3] * data[i][2] >= options.hugeTradeThreshold) {
+        if (options.showPlotsSignificants && data[i][3] * data[i][2] >= options.plotTradeThreshold) {
           labels.push(this.createPoint(data[i]));
         }
       }
@@ -900,16 +901,16 @@ export default {
           'data-symbol'
         )}${formatPrice(trade[2]).replace(/(\d)(?=(\d{3})+\.)/g, '$1,')}`;
 
-      const fill = color || (trade[4] == 1 ? 'rgba(124,167,78, .5)' : 'rgba(244,67,54, .5)');
+      const fill = color || (trade[4] == 1 ? 'rgba(27, 94, 32, .75)' : 'rgba(183, 28, 28, .75)');
       const stroke = trade[4] == 1 ? '#60d666' : '#F44336';
 
       return {
         x: +trade[1],
         y: this.priceIndex,
         marker: {
-          radius: Math.max(5, Math.log(1 + (trade[2] * trade[3]) / (options.hugeTradeThreshold - options.threshold)) * 6),
+          radius: Math.max(2, Math.log(1 + (trade[2] * trade[3]) / options.plotTradeThreshold) * 4),
           symbol: trade[5] ? 'diamond' : trade[4] == 1 ? 'triangle' : 'triangle-down',
-          fillColor: 'rgba(0, 0, 0, .5)',
+          fillColor: fill,
           lineColor: stroke
         },
         name: label
@@ -1072,7 +1073,7 @@ export default {
       this.updateHighs();
     },
 
-    updateHighs() {
+    updateHighs(delay = 500) {
       if (!options.showPlotsHighs) {
         if (this.chart.series[5].xData.length) {
           this.chart.series[5].setData([]);
@@ -1109,7 +1110,7 @@ export default {
           this.buyHigh = buyHigh;
           this.sellHigh = sellHigh;
         }
-      }, 500);
+      }, delay);
     },
 
     //    __            _

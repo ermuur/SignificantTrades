@@ -24,9 +24,9 @@
         </div>
         <div class="settings__plots settings__column">
           <div class="form-group">
-            <label class="checkbox-control flex-right" v-tippy title="Shows significants orders (huge+) on the chart">
+            <label class="checkbox-control flex-right" v-tippy title="Shows significants orders on the chart">
               <input type="checkbox" class="form-control" v-model="options.showPlotsSignificants">
-              <span>{{options.hugeTradeThreshold}}+</span>
+              <span @click.prevent><editable :content.sync="options.plotTradeThreshold" v-tippy="{ placement: 'bottom', arrow: true }" title="Define threshold"></editable></span>
               <div></div>
             </label>
           </div>
@@ -38,7 +38,7 @@
             </label>
           </div>
           <div class="form-group">
-            <label class="checkbox-control flex-right" v-tippy title="Shows annotation on top of highest buys/sells">
+            <label class="checkbox-control flex-right" v-tippy title="Annotate highest volume node on both side">
               <input type="checkbox" class="form-control" v-model="options.showPlotsHighs">
               <span>Volume highs</span>
               <div></div>
@@ -252,6 +252,13 @@
     z-index: 1;
 
     animation: .5s $easeOutExpo picker-in;
+  }
+
+  [contenteditable] {
+    display: inline-block;
+    cursor: text;
+    color: $green;
+    font-family: monospace;
   }
 
   @keyframes picker-in {
@@ -565,6 +572,12 @@
           line-height: 1.5;
         }
       }
+
+      [contenteditable] {
+        &:after {
+          content: '+';
+        }
+      }
     }
 
     .settings__audio {
@@ -643,13 +656,6 @@
 
       .icon-currency {
         color: $green;
-      }
-
-      [contenteditable] {
-        display: inline-block;
-        cursor: text;
-        color: $green;
-        font-family: monospace;
       }
     }
 

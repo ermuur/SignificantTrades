@@ -14,6 +14,7 @@ const emitter = new Vue({
       significantTradeThreshold: 100000,
       hugeTradeThreshold: 1000000,
       rareTradeThreshold: 10000000,
+      plotTradeThreshold: 500000,
       colors: {
         buys: [
           '#4caf50',
