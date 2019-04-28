@@ -31,7 +31,7 @@ class Server extends EventEmitter {
 			origin: '.*',
 
 			// max interval an ip can fetch in a limited amount of time (usage restriction, default 7 day)
-			maxFetchUsage: 1000 * 60 * 60 * 24 * 7,
+			maxFetchUsage: 1000 * 60 * 60 * 24,
 
 			// the limited amount of time in which the user usage will be stored
 			fetchUsageResetInterval: 1000 * 60 * 10,
@@ -364,7 +364,7 @@ class Server extends EventEmitter {
 						return;
 					}
 
-					let maxFetchInterval = 1000 * 60 * 60 * 24; 
+					let maxFetchInterval = 1000 * 60 * 60 * 4; 
 
 					if (this.storage.format === 'tick') {
 						maxFetchInterval *= 365;
