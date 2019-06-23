@@ -93,7 +93,6 @@ const DEFAULTS = {
   // runtime state
   isSnaped: true,
   isLoading: false,
-  isReplaying: false,
   actives: [],
 }
 
@@ -169,7 +168,6 @@ if (STORED && STORED.thresholds && STORED.thresholds.length) {
 const EPHEMERAL_PROPERTIES = [
   'isSnaped',
   'isLoading',
-  'isReplaying',
   'actives',
 ]
 
@@ -415,9 +413,6 @@ const store = new Vuex.Store({
     },
     toggleLoading(state, value) {
       state.isLoading = value ? true : false
-    },
-    toggleReplaying(state, params) {
-      state.isReplaying = params ? true : false
     },
     reloadExchangeState(state, exchange) {
       if (!exchange) {

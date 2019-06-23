@@ -44,7 +44,6 @@ const emitter = new Vue({
 
       trades: [],
       ticks: [],
-      timestamps: {},
       queue: [],
 
       _pair: null,
@@ -52,7 +51,6 @@ const emitter = new Vue({
       _fetchedTime: 0,
       _fetchedBytes: 0,
       _firstCloses: {},
-      _replayTime: 0,
     }
   },
   computed: {
@@ -83,40 +81,17 @@ const emitter = new Vue({
     isLoading() {
       return store.state.isLoading
     },
-    isReplaying() {
-      return store.state.isReplaying
-    },
   },
   created() {
-    /*window.emitTrade = (exchange, price, amount = 1, side = 1, type = null) => {
-      exchange = exchange || 'bitmex';
-
-      if (price === null) {
-        price = this.getExchangeById(exchange).price;
-      }
-
-      let trade = [exchange, +new Date(), price, amount, side ? 1 : 0, type]
-
-      this.queue = this.queue.concat([trade]);
-
-      this.emitTrades([trade]);
-    }*/
-
     this.exchanges.forEach((exchange) => {
-      exchange.on('live_trades', (trades) => {
+      exchange.on('trades', (trades) => {
         if (!trades || !trades.length) {
           return
         }
 
-        this.timestamps[exchange.id] = +new Date()
-
-        trades = trades.sort((a, b) => a[1] - b[1])
-
         this.queue = this.queue.concat(trades)
 
-        if (!this.isReplaying) {
-          this.emitTrades(trades)
-        }
+        this.$emit('trades.raw', trades)
       })
 
       exchange.on('open', (event) => {
@@ -180,7 +155,7 @@ const emitter = new Vue({
 
       setTimeout(this.connectExchanges.bind(this))
 
-      setInterval(this.emitTradesAsync.bind(this), 1000)
+      setInterval(this.processQueue.bind(this), 1000)
     },
     connectExchanges(pair = null) {
       this.disconnectExchanges()
@@ -199,7 +174,6 @@ const emitter = new Vue({
       }
 
       this.trades = this.queue = this.ticks = []
-      this.timestamps = {}
       this._fetchedMax = false
 
       console.log(`[socket.connect] connecting to ${this.pair}`)
@@ -275,7 +249,7 @@ const emitter = new Vue({
       this.exchanges.forEach((exchange) => exchange.disconnect())
     },
     cleanOldData() {
-      if (this.isLoading || this.isReplaying) {
+      if (this.isLoading) {
         return
       }
 
@@ -328,36 +302,82 @@ const emitter = new Vue({
 
       return null
     },
-    emitTrades(trades, event = 'trades.instant') {
-      let upVolume = 0
-      let downVolume = 0
-
-      const output = trades.filter((a) => {
-        if (this.actives.indexOf(a[0]) === -1) {
-          return false
-        }
-
-        if (a[4] > 0) {
-          upVolume += a[3]
-        } else {
-          downVolume += a[3]
-        }
-
-        return true
-      })
-
-      this.$emit(event, output, upVolume, downVolume)
-    },
-    emitTradesAsync() {
-      if (this.isReplaying || !this.queue.length) {
+    processQueue() {
+      if (!this.queue.length) {
         return
       }
 
-      this.trades = this.trades.concat(this.queue)
+      const output = this.compressTrades(this.queue)
 
-      this.emitTrades(this.queue, 'trades.queued')
+      this.trades = this.trades.concat(output)
 
-      this.queue = []
+      const stats = {
+        buyCount: 0,
+        buySize: 0,
+        buyAmount: 0,
+        sellCount: 0,
+        sellSize: 0,
+        sellAmount: 0
+      }
+
+      let i = output.length;
+
+      while (i--) {
+        if (this.actives.indexOf(output[i].exchange) === -1) {
+          output.splice(i, 1)
+        } else {
+          if (output[i].side === 'buy') {
+            stats.buyCount += output[i].count || 1
+            stats.buySize += output[i].size
+            stats.buyAmount += output[i].price * output[i].size
+          } else {
+            stats.sellCount += output[i].count || 1
+            stats.sellSize += output[i].size
+            stats.sellAmount += output[i].price * output[i].size
+          }
+        }
+      }
+
+      this.queue.splice(0, this.queue.length)
+
+      this.$emit('trades.queued', output, stats)
+    },
+    compressTrades(trades) {
+      const sums = {}
+      const groups = {}
+      const output = []
+
+      for (let i = 0; i < trades.length; i++) {
+        if (trades[i].price * trades[i].size < 1000) {
+          const id = trades[i].exchange + trades[i].side;
+
+          if (groups[id]) {
+            output[groups[id]].count++;
+            output[groups[id]].price += +trades[i].price
+            output[groups[id]].size += +trades[i].size
+            
+            sums[id] += trades[i].price * trades[i].size
+          } else {
+            // index of the group
+            groups[id] = output.length
+
+            // init group count
+            trades[i].count = 1
+
+            sums[id] = trades[i].price * trades[i].size;
+          }
+        }
+
+        output.push(trades[i])
+      }
+
+      const groupIds = Object.keys(groups);
+
+      for (let i = 0; i < groupIds.length; i++) {
+        output[groups[groupIds[i]]].price = sums[groupIds[i]] / output[groups[groupIds[i]]].size
+      }
+
+      return output
     },
     canFetch() {
       return (
@@ -383,7 +403,7 @@ const emitter = new Vue({
         this._fetchedMax = false
       }
 
-      if (this.isLoading || this.isReplaying || !this.canFetch()) {
+      if (this.isLoading || !this.canFetch()) {
         return Promise.resolve(null)
       }
 
@@ -431,82 +451,6 @@ const emitter = new Vue({
 
       return promise
     },
-    replay(speed) {
-      if (this.isReplaying || this.isLoading) {
-        return
-      }
-
-      const trades = this.trades.splice(0, this.trades.length)
-      const start = (this._replayTime = +trades[0][1] + this.timeframe)
-
-      console.log('BASE REPLAY TRADE', new Date(start).toLocaleString())
-
-      let backup = []
-      let queue = []
-      let queuedAt = 0
-      let startedAt
-
-      const step = (timestamp) => {
-        if (!startedAt) {
-          startedAt = timestamp
-        }
-
-        timestamp -= startedAt
-
-        if (!this.isReplaying) {
-          if (trades.length) {
-            backup = backup.concat(trades)
-          }
-
-          this.trades = backup.concat(this.trades)
-
-          store.commit('toggleReplaying', false)
-
-          return false
-        }
-
-        this._replayTime = start + timestamp * speed
-
-        let index
-
-        for (index = 0; index < trades.length; index++) {
-          if (trades[index][1] > this._replayTime) {
-            break
-          }
-        }
-
-        if (index) {
-          const chunk = trades.splice(0, index)
-
-          this.emitTrades(chunk)
-
-          queue = queue.concat(chunk)
-
-          if (timestamp - queuedAt > 200) {
-            queuedAt = timestamp
-
-            this.emitTrades(queue.splice(0, queue.length), 'trades.queued')
-          }
-
-          backup = backup.concat(chunk)
-        }
-
-        if (trades.length) {
-          window.requestAnimationFrame(step)
-        } else {
-          this.trades = backup.concat(this.trades)
-
-          store.commit('toggleReplaying', false)
-        }
-      }
-
-      store.commit('toggleReplaying', {
-        timestamp: start,
-        speed: speed,
-      })
-
-      window.requestAnimationFrame(step)
-    },
     fetchHistoricalData(from, to) {
       const url = this.getApiUrl(from, to)
 
@@ -546,14 +490,13 @@ const emitter = new Vue({
 
             switch (response.data.format) {
               case 'trade':
-                data = data.map((a) => {
-                  a[1] = +a[1]
-                  a[2] = +a[2]
-                  a[3] = +a[3]
-                  a[4] = +a[4]
-
-                  return a
-                })
+                data = this.compressTrades(data.map((a) => ({
+                  exchange: a[0],
+                  timestamp: +a[1],
+                  price: +a[2],
+                  size: +a[3],
+                  side: +a[4] > 0 ? 'buy' : 'sell'
+                })))
 
                 if (!this.trades.length) {
                   console.log(
@@ -563,11 +506,11 @@ const emitter = new Vue({
                   this.trades = data
                 } else {
                   const prepend = data.filter(
-                    (trade) => trade[1] <= this.trades[0][1]
+                    (trade) => trade.timestamp <= this.trades[0].timestamp
                   )
                   const append = data.filter(
                     (trade) =>
-                      trade[1] >= this.trades[this.trades.length - 1][1]
+                      trade.timestamp >= this.trades[this.trades.length - 1].timestamp
                   )
 
                   if (prepend.length) {
@@ -626,10 +569,6 @@ const emitter = new Vue({
       })
     },
     getCurrentTimestamp() {
-      if (this.isReplaying && this.replayTime) {
-        return this.replayTime
-      }
-
       return +new Date()
     },
     getInitialPrices() {

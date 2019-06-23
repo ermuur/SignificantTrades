@@ -1,18 +1,18 @@
-import Exchange from '../services/exchange'
-import pako from 'pako'
+import Exchange from "../services/exchange"
+import pako from "pako"
 
 class Huobi extends Exchange {
   constructor(options) {
     super(options)
 
-    this.id = 'huobi'
+    this.id = "huobi"
 
     this.endpoints = {
-      PRODUCTS: 'http://api.huobi.pro/v1/common/symbols',
+      PRODUCTS: "http://api.huobi.pro/v1/common/symbols"
     }
 
-    this.matchPairName = (pair) => {
-      pair = pair.replace(/USD$/, 'USDT')
+    this.matchPairName = pair => {
+      pair = pair.replace(/USD$/, "USDT")
 
       if (this.products.indexOf(pair) !== -1) {
         return pair.toLowerCase()
@@ -23,7 +23,7 @@ class Huobi extends Exchange {
 
     this.options = Object.assign(
       {
-        url: 'wss://api.huobi.pro/ws',
+        url: "wss://api.huobi.pro/ws"
       },
       this.options
     )
@@ -34,16 +34,15 @@ class Huobi extends Exchange {
 
     this.api = new WebSocket(this.getUrl())
 
-    this.api.binaryType = 'arraybuffer'
+    this.api.binaryType = "arraybuffer"
 
-    this.api.onmessage = (event) =>
-      this.emitTrades(this.formatLiveTrades(event.data))
+    this.api.onmessage = event => this.emitTrades(this.formatLiveTrades(event.data))
 
-    this.api.onopen = (event) => {
+    this.api.onopen = event => {
       this.api.send(
         JSON.stringify({
-          sub: 'market.' + this.pair + '.trade.detail',
-          id: this.pair,
+          sub: "market." + this.pair + ".trade.detail",
+          id: this.pair
         })
       )
 
@@ -52,7 +51,7 @@ class Huobi extends Exchange {
 
     this.api.onclose = this.emitClose.bind(this)
 
-    this.api.onerror = this.emitError.bind(this, { message: 'Websocket error' })
+    this.api.onerror = this.emitError.bind(this, { message: "Websocket error" })
   }
 
   disconnect() {
@@ -64,7 +63,7 @@ class Huobi extends Exchange {
   }
 
   formatLiveTrades(event) {
-    const json = JSON.parse(pako.inflate(event, { to: 'string' }))
+    const json = JSON.parse(pako.inflate(event, { to: "string" }))
 
     if (!json) {
       return
@@ -74,21 +73,19 @@ class Huobi extends Exchange {
       this.api.send(JSON.stringify({ pong: json.ping }))
       return
     } else if (json.tick && json.tick.data && json.tick.data.length) {
-      return json.tick.data.map((trade) => [
-        this.id,
-        trade.ts,
-        +trade.price,
-        +trade.amount,
-        trade.direction === 'buy' ? 1 : 0,
-      ])
+      return json.tick.data.map(trade => ({
+        exchange: this.id,
+        timestamp: trade.ts,
+        price: +trade.price,
+        size: +trade.amount,
+        side: trade.direction === "buy" ? "buy" : "sell"
+      }))
     }
   }
 
   formatProducts(response) {
-    return Object.keys(response.data).map((a) =>
-      (
-        response.data[a]['base-currency'] + response.data[a]['quote-currency']
-      ).toUpperCase()
+    return Object.keys(response.data).map(a =>
+      (response.data[a]["base-currency"] + response.data[a]["quote-currency"]).toUpperCase()
     )
   }
 }

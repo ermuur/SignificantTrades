@@ -60,13 +60,13 @@ class Bitstamp extends Exchange {
 
   formatLiveTrades(trade) {
     return [
-      [
-        this.id,
-        +new Date(trade.timestamp * 1000),
-        trade.price,
-        trade.amount,
-        trade.type === 0 ? 1 : 0,
-      ],
+      {
+        exchange: this.id,
+        timestamp: +new Date(trade.timestamp * 1000),
+        price: trade.price,
+        size: trade.amount,
+        side: trade.type === 0 ? 'buy' : 'sell',
+      }
     ]
   }
 

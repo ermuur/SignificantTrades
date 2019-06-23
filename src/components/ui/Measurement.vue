@@ -44,8 +44,8 @@ export default {
 
       this.$el.setAttribute('viewBox', `0 ${-this.max} ${this.points.length - 1} ${this.max - this.min}`)
     },
-    append(point) {
-      const now = Math.floor(+new Date() / this.timeframe) * this.timeframe;
+    append(point, timestamp = +new Date()) {
+      const now = Math.floor(timestamp / this.timeframe) * this.timeframe;
 
       if (!this.points.length || now > this.timestamp || (point < this.min || point > this.max)) {
         if (now > this.timestamp) {

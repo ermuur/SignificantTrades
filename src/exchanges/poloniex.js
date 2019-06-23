@@ -64,13 +64,13 @@ class Poloniex extends Exchange {
     if (json[2] && json[2].length) {
       return json[2]
         .filter((result) => result[0] === 't')
-        .map((trade) => [
-          this.id,
-          +new Date(trade[5] * 1000),
-          +trade[3],
-          +trade[4],
-          trade[2],
-        ])
+        .map((trade) => ({
+          exchange: this.id,
+          timestamp: +new Date(trade[5] * 1000),
+          price: +trade[3],
+          size: +trade[4],
+          side: trade[2] > 0 ? 'buy' : 'sell',
+        }))
     }
   }
 

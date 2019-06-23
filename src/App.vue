@@ -16,7 +16,7 @@
       <Header :price="price" @toggleSettings="showSettings = !showSettings" />
       <div class="app__layout">
         <div class="app__left" v-if="showChart">
-          <Chart />
+          <!-- <Chart /> -->
           <Exchanges v-if="showExchangesBar" />
         </div>
         <div class="app__right">
@@ -322,4 +322,5 @@ export default {
 @import './assets/sass/tooltip';
 @import './assets/sass/dropdown';
 @import './assets/sass/button';
+@import './assets/sass/autocomplete';
 </style>

@@ -93,15 +93,13 @@ class Coinex extends Exchange {
         return false
       }
 
-      return json.params[1].map((trade) => {
-        return [
-          this.id,
-          trade.time * 1000,
-          +trade.price,
-          +trade.amount,
-          trade.type === 'buy' ? 1 : 0,
-        ]
-      })
+      return json.params[1].map((trade) => ({
+        exchange: this.id,
+        timestamp: trade.time * 1000,
+        price: +trade.price,
+        size: +trade.amount,
+        side: trade.type === 'buy' ? 'buy' : 'sell',
+      }))
     }
 
     return false

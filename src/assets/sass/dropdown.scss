@@ -1,4 +1,4 @@
-@keyframes appear-from-above {
+@keyframes dropdown-in {
 	0% {
 		-webkit-transform: translateY(-25%);
 		transform: translateY(-25%);
@@ -40,7 +40,7 @@
 		color: white;
 		padding: 0;
 
-		animation: .33s $easeOutExpo appear-from-above;
+		animation: .33s $easeOutExpo dropdown-in;
 		white-space: nowrap;
 
 		cursor: pointer;

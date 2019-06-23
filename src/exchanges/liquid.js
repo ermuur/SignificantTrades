@@ -60,13 +60,13 @@ class Liquid extends Exchange {
 
   formatLiveTrades(trade) {
     return [
-      [
-        this.id,
-        +new Date(trade.created_at * 1000),
-        trade.price,
-        trade.quantity,
-        trade.taker_side === 'buy' ? 1 : 0,
-      ],
+      {
+        exchange: this.id,
+        timestamp: +new Date(trade.created_at * 1000),
+        price: trade.price,
+        size: trade.quantity,
+        side: trade.taker_side === 'buy' ? 'buy' : 'sell',
+      }
     ]
   }
 

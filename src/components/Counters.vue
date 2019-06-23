@@ -97,14 +97,12 @@ export default {
     })
 
     socket.$on('trades.queued', this.appendTrades)
-    socket.$on('trades.instant', this.highlightSide)
     socket.$on('historical', this.onFetch)
 
     this.rebuildCounters()
   },
   beforeDestroy() {
     socket.$off('trades.queued', this.appendTrades)
-    socket.$off('trades.instant', this.highlightSide)
     socket.$off('historical', this.onFetch)
 
     clearInterval(this.countersRefreshCycleInterval)
@@ -112,7 +110,7 @@ export default {
     this.onStoreMutation()
   },
   methods: {
-    highlightSide(trades) {
+    /*highlightSide(trades) {
       const volume = [0, 0]
 
       for (let i = 0; i < trades.length; i++) {
@@ -139,20 +137,10 @@ export default {
       element.classList.add('-highlight')
 
       this.strength[side] = (this.strength[side] + volume[side]) * 0.75
-    },
-    appendTrades(trades) {
-      const now = +new Date()
-
-      let upVolume = 0
-      let downVolume = 0
-
-      for (let index = 0; index < trades.length; index++) {
-        if (trades[index][4] > 0) {
-          upVolume += trades[index][3] * (this.preferQuoteCurrencySize ? trades[index][2] : 1)
-        } else {
-          downVolume += trades[index][3] * (this.preferQuoteCurrencySize ? trades[index][2] : 1)
-        }
-      }
+    },*/
+    appendTrades(trades, stats) {
+      const upVolume = this.preferQuoteCurrencySize ? stats.sellAmount : stats.sellSize
+      const downVolume = this.preferQuoteCurrencySize ? stats.sellAmount : stats.sellSize
 
       this.queue[0] += upVolume
       this.queue[1] += downVolume
@@ -253,25 +241,25 @@ export default {
 
       let stacks = []
 
-      for (let trade of trades) {
+      for (let i = 0; i < trades.length; i++) {
         if (
-          this.actives.indexOf(trade[0]) === -1 ||
-          trade[1] < now - minTimestampForCounter
+          this.actives.indexOf(trades[i].exchange) === -1 ||
+          trades[i].timestamp < now - minTimestampForCounter
         ) {
           continue
         }
 
-        const isBuy = +trade[4] > 0 ? true : false
-        const amount = trade[3] * (this.preferQuoteCurrencySize ? trade[2] : 1)
+        const isBuy = trades[i].side === 'buy'
+        const amount = trades[i].size * (this.preferQuoteCurrencySize ? trades[i].price : 1)
 
         if (
           stacks.length &&
-          trade[1] - stacks[stacks.length - 1][0] < this.counterPrecision
+          trades[i].timestamp - stacks[stacks.length - 1][0] < this.counterPrecision
         ) {
           stacks[stacks.length - 1][isBuy ? 1 : 2] += amount
         } else {
           stacks.push([
-            +trade[1],
+            +trades[i].timestamp,
             isBuy ? amount : 0,
             !isBuy ? amount : 0,
           ])

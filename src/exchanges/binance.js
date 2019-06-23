@@ -57,7 +57,13 @@ class Binance extends Exchange {
 
   formatLiveTrades(trade) {
     if (trade) {
-      return [[this.id, trade.E, +trade.p, +trade.q, trade.m ? 0 : 1]]
+      return [{
+        exchange: this.id,
+        timestamp: trade.E,
+        price: +trade.p,
+        size: +trade.q,
+        side: trade.m ? 'sell' : 'buy'
+      }]
     }
 
     return false

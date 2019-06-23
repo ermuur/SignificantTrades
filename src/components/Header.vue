@@ -11,12 +11,6 @@
         :selected="timeframe"
         @output="setTimeframe(+$event)"
       ></dropdown>
-      <!-- <button type="button"
-        :class="{active: isReplaying}"
-        @click="replay" title="Replay"
-        v-tippy="{placement: 'bottom'}">
-        <span class="icon-history"></span>
-      </button> -->
       <button
         type="button"
         v-if="!isPopupMode"
@@ -50,6 +44,9 @@
         <span class="icon-cog"></span>
       </button>
     </div>
+    <div class="header__search">
+      <Autocomplete :load="search"/>
+    </div>
   </header>
 </template>
 
@@ -58,7 +55,12 @@ import { mapState } from 'vuex'
 
 import socket from '../services/socket'
 
+import Autocomplete from './ui/Autocomplete.vue'
+
 export default {
+  components: {
+    Autocomplete,
+  },
   props: ['price'],
   data() {
     return {
@@ -77,8 +79,7 @@ export default {
       'showChart',
       'isSnaped',
       'timeframe',
-      'chartRange',
-      'isReplaying',
+      'chartRange'
     ]),
   },
   created() {
@@ -120,13 +121,6 @@ export default {
     this.updateTimeframesApproximateContentSize()
   },
   methods: {
-    replay() {
-      if (this.isReplaying) {
-        this.$store.state.isReplaying = false
-      } else {
-        socket.replay(10)
-      }
-    },
     setTimeframe(timeframe) {
       document.activeElement.blur()
 
@@ -184,6 +178,11 @@ export default {
         }
       }
     },
+    search(query) {
+      return socket.exchanges.map(a => a.indexedProducts).reduce((a, b) => {
+        return a.concat(b);
+      }, []).filter((a, index, arr) => arr.indexOf(a) === index && new RegExp(query, "i").test(a))
+    }
   },
 }
 </script>
@@ -195,7 +194,7 @@ header#header {
   background-color: lighten($dark, 10%);
   color: white;
   position: relative;
-  z-index: 2;
+  z-index: 3;
 
   div.header__wrapper {
     position: relative;

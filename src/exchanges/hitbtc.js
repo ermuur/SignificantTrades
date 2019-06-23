@@ -69,13 +69,14 @@ class Hitbtc extends Exchange {
       json.params.data &&
       json.params.data.length
     ) {
-      return json.params.data.map((trade) => [
-        this.id,
-        +new Date(trade.timestamp),
-        +trade.price,
-        +trade.quantity,
-        trade.side === 'buy' ? 1 : 0,
-      ])
+      return json.params.data.map((trade) => ({
+        
+        exchange: this.id,
+        timestamp: +new Date(trade.timestamp),
+        price: +trade.price,
+        size: +trade.quantity,
+        side: trade.side === 'buy' ? 'buy' : 'sell',
+      }))
     }
   }
 

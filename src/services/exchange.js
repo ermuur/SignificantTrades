@@ -9,6 +9,7 @@ class Exchange extends EventEmitter {
     this.indexedProducts = []
     this.connected = false
     this.valid = false
+    this.timestamp = null
     this.price = null
     this.error = null
     this.shouldBeConnected = false
@@ -99,6 +100,7 @@ class Exchange extends EventEmitter {
     clearTimeout(this.reconnectionTimeout)
 
     this.shouldBeConnected = false
+    this.timestamp = null
     this.price = null
     this.error = null
 
@@ -140,11 +142,10 @@ class Exchange extends EventEmitter {
 
     const output = this.groupTrades(trades)
 
-    let isFirstTrade = !this.price
+    this.price = output[output.length - 1].price
+    this.timestamp = +new Date()
 
-    this.price = output[output.length - 1][2]
-
-    this.emit('live_trades', output, isFirstTrade)
+    this.emit('trades', output)
   }
 
   /**
@@ -158,35 +159,33 @@ class Exchange extends EventEmitter {
    * @memberof Exchange
    */
   groupTrades(trades) {
-    const group = {}
+    const groups = {}
     const sums = {}
     const output = []
 
-    for (let trade of trades) {
-      const id = parseInt(trade[1]).toFixed() + '_' + trade[4] // timestamp + side
+    for (let i = 0; i < trades.length; i++) {
+      const id = parseInt(trades[i][1]).toFixed() + '_' + trades[i][4] // timestamp + side
 
-      trade[2] = +trade[2];
-      trade[3] = +trade[3];
+      trades[i].price = +trades[i].price;
+      trades[i].size = +trades[i].size;
 
-      if (trade[5]) {
-        output.push(trade);
-      } else if (group[id]) {
-        group[id][2] += +trade[2]
-        group[id][3] += +trade[3]
-        sums[id] += trade[2] * trade[3]
+      if (groups[id]) {
+        groups[id].price += +trades[i].price
+        groups[id].size += +trades[i].size
+        sums[id] += trades[i].price * trades[i].size
       } else {
-        group[id] = trade
+        groups[id] = trades[i]
 
-        sums[id] = trade[2] * trade[3];
+        sums[id] = trades[i].price * trades[i].size;
       }
     }
 
-    const ids = Object.keys(group);
+    const ids = Object.keys(groups);
 
     for (let i = 0; i < ids.length; i++) {
-      group[ids[i]][2] = sums[ids[i]] / group[ids[i]][3]
+      groups[ids[i]].price = sums[ids[i]] / groups[ids[i]].size
 
-      output.push(group[ids[i]]);
+      output.push(groups[ids[i]]);
     }
 
     return output

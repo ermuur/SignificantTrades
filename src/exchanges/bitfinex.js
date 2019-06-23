@@ -67,13 +67,13 @@ class Bitfinex extends Exchange {
     }
 
     return [
-      [
-        this.id,
-        +new Date(json[2][1]),
-        +json[2][3],
-        Math.abs(json[2][2]),
-        json[2][2] < 0 ? 0 : 1,
-      ],
+      {
+        exchange: this.id,
+        timestamp: +new Date(json[2][1]),
+        price: +json[2][3],
+        size: Math.abs(json[2][2]),
+        side: json[2][2] < 0 ? 'sell' : 'buy',
+      },
     ]
   }
 

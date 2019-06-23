@@ -6,17 +6,16 @@
     @mouseleave="hovering = false"
   >
     <div
-      v-for="(exchange, index) in connectedExchanges"
+      v-for="(id, index) in list"
       :key="index"
-      :class="'-' + exchange.id + ' -' + exchange.side"
-      @click="$store.commit('toggleExchangeVisibility', exchange.id)"
+      :class="'-' + id + ' -' + status[id].status"
+      @click="$store.commit('toggleExchangeVisibility', id)"
     >
       <div
-        v-if="exchange.price"
         class="exchange__price"
-        :class="{ '-hidden': exchanges[exchange.id].hidden }"
+        :class="{ '-hidden': exchanges[id].hidden }"
       >
-        <span v-html="$root.formatPrice(exchange.price)"></span> &nbsp;
+        <span v-html="$root.formatPrice(status[id].price)"></span> &nbsp;
       </div>
     </div>
   </div>
@@ -33,72 +32,88 @@ export default {
   data() {
     return {
       hovering: false,
-      exchangesAverage: {},
-      exchangesDirection: {},
-      connectedExchanges: [],
+      list: [],
+      status: {},
     }
   },
   computed: {
     ...mapState(['actives', 'exchanges']),
   },
   created() {
-    this.connectedExchanges = socket.exchanges
+    this.list = this.actives.slice(0, this.actives.length)
+    this.status = socket.exchanges.reduce((obj, exchange) => {
+      obj[exchange.id] = {
+        status: 'pending',
+        price: null,
+      }
 
-    socket.$on('trades.queued', this.onTrades)
+      return obj
+    }, {})
 
-    this._priceComparisonInterval = setInterval(
-      this.updatePriceAction.bind(this),
+    this.onStoreMutation = this.$store.subscribe((mutation, state) => {
+      switch (mutation.type) {
+        case 'reloadExchangeState':
+          console.log(this.list)
+          if (!mutation.payload) {
+            break;
+          }
+
+          const active = this.actives.indexOf(mutation.payload) !== -1
+          const listed = this.list.indexOf(mutation.payload) !== -1
+          if (active && !listed) {
+            console.log('exchanges: list', mutation.payload)
+            this.list.push(mutation.payload)
+          } else if (!active && listed) {
+            console.log('exchanges: delist', mutation.payload)
+            this.list.splice(this.list.indexOf(mutation.payload), 1)
+          }
+          break
+      }
+    })
+
+    this._updateExchangesInterval = setInterval(
+      this.updateExchanges.bind(this),
       2000
     )
   },
   beforeDestroy() {
-    socket.$off('trades.queued', this.onTrades)
+    this.onStoreMutation()
 
-    clearInterval(this._priceComparisonInterval)
+    clearInterval(this._updateExchangesInterval)
   },
   methods: {
-    onTrades() {},
-    updatePriceAction() {
-      socket.exchanges.forEach((exchange, index) => {
-        if (this.actives.indexOf(exchange.id) === -1 || !exchange.price) {
-          return
+    updateExchanges() {
+      const now = +new Date()
+      for (let i = 0; i < socket.exchanges.length; i++) {
+        const id = socket.exchanges[i].id
+        
+        if (this.actives.indexOf(socket.exchanges[i].id) === -1 || this.status[id].price === socket.exchanges[i].price) {
+          continue
         }
 
-        if (!storedPrices[exchange.id]) {
-          storedPrices[exchange.id] = []
+        if (!socket.exchanges[i].price) {
+          this.status[id].status = 'pending'
+        } else if (now - socket.exchanges[i].timestamp > 10000) {
+          this.status[id].status = 'idle'
+        } else if (this.status[id].price > socket.exchanges[i].price) {
+          this.status[id].status = 'down'
+        } else if (this.status[id].price < socket.exchanges[i].price) {
+          this.status[id].status = 'up'
+        } else {
+          this.status[id].status = 'neutral'
         }
 
-        if (
-          !storedPrices[exchange.id].length ||
-          storedPrices[exchange.id][storedPrices[exchange.id].length - 1] !==
-            exchange.price
-        ) {
-          storedPrices[exchange.id].push(exchange.price)
-          storedPrices[exchange.id].splice(
-            0,
-            storedPrices[exchange.id].length - 5
-          )
+        if (this.status[id].price !== socket.exchanges[i].price) {
+          this.status[id].price = socket.exchanges[i].price
         }
-
-        socket.exchanges[index].avg =
-          storedPrices[exchange.id].reduce((a, b) => a + b) /
-          storedPrices[exchange.id].length
-        socket.exchanges[index].side = !exchange.price
-          ? 'pending'
-          : exchange.price > exchange.avg
-          ? 'up'
-          : exchange.price < exchange.avg
-          ? 'down'
-          : 'neutral'
-      })
+      }
 
       if (this.hovering) {
         return
       }
 
-      this.connectedExchanges = socket.exchanges
-        .filter((a) => a.connected)
-        .sort((a, b) => a.price - b.price)
+      this.list = this.list
+        .sort((a, b) => this.status[a].price - this.status[a].price)
     },
   },
 }

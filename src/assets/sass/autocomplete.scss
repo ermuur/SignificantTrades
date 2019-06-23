@@ -1,0 +1,77 @@
+.autocomplete {
+  position: relative;
+
+  &__wrapper {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    background-color: rgba(black, 0.75);
+    border-radius: 2px;
+    overflow: hidden;
+    padding-right: 0.25em;
+    padding-bottom: 0.25em;
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
+
+  &__input {
+    flex-grow: 1;
+  }
+
+  &__item {
+    background-color: rgba(white, 0.2);
+    padding: 0.4em 0.6em;
+    margin: 0.25em;
+    flex-basis: auto;
+  }
+
+  &__input,
+  &__item {
+    -webkit-appearance: none;
+    appearance: none;
+    padding: 0.4em 0.6em;
+    margin: 0.25em;
+    line-height: 1;
+  }
+
+  &__item {
+    margin-right: 0;
+    margin-bottom: 0;
+  }
+
+  &__dropdown {
+    position: absolute;
+    width: 100%;
+    right: 0;
+    bottom: 0;
+    overflow: auto;
+    border-radius: 2px;
+    max-height: 50vh;
+    transform: translateY(100%);
+    background-color: rgba(black, 0.75);
+
+    animation: 0.33s $easeOutExpo autocomplete-in;
+  }
+
+  &__option {
+    padding: 0.3em 0.6em;
+    transition: padding 0.2s $easeOutExpo;
+    cursor: pointer;
+
+    &:hover {
+      background-color: rgba(white, 0.2);
+      padding-left: 1em;
+    }
+  }
+}
+
+@keyframes autocomplete-in {
+	0% {
+		transform: translateY(-75%);
+		opacity: 0;
+	}
+	100% {
+		transform: translateY(100%);
+		opacity: 1;
+	}
+}

@@ -49,22 +49,22 @@ class Bitmex extends Exchange {
   formatLiveTrades(json) {
     if (json && json.data && json.data.length) {
       if (json.table === 'liquidation' && json.action === 'insert') {
-        return json.data.map((trade) => [
-          this.id,
-          +new Date(),
-          trade.price,
-          trade.leavesQty / (this.quotedInUSD ? trade.price : 1),
-          trade.side === 'Buy' ? 1 : 0,
-          1,
-        ])
+        return json.data.map((trade) => ({
+          exchange: this.id,
+          timestamp: +new Date(),
+          price: trade.price,
+          size: trade.leavesQty / (this.quotedInUSD ? trade.price : 1),
+          side: trade.side === 'Buy' ? 'buy' : 'sell',
+          liquidation: true
+        }))
       } else if (json.table === 'trade' && json.action === 'insert') {
-        return json.data.map((trade) => [
-          this.id,
-          +new Date(trade.timestamp),
-          trade.price,
-          trade.size / (this.quotedInUSD ? trade.price : 1),
-          trade.side === 'Buy' ? 1 : 0,
-        ])
+        return json.data.map((trade) => ({
+          exchange: this.id,
+          timestamp: +new Date(trade.timestamp),
+          price: trade.price,
+          size: trade.size / (this.quotedInUSD ? trade.price : 1),
+          side: trade.side === 'Buy' ? 'buy' : 'sell',
+        }))
       }
     }
 

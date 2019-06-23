@@ -54,6 +54,8 @@ import socket from '../services/socket'
 
 import Measurement from './ui/Measurement.vue'
 
+const stacks = []
+
 export default {
   components: {
     Measurement
@@ -62,40 +64,28 @@ export default {
     return {
       timestamp: null,
       periodLabel: null,
-      countUp: {
-        average: null,
-        live: null,
-        count: 0,
-      },
-      countDown: {
-        average: null,
-        live: null,
-        count: 0,
-      },
-      volUp: {
-        average: null,
-        live: null,
-        count: 0,
-      },
-      volDown: {
-        average: null,
-        live: null,
-        count: 0,
-      },
+      statsPrecision: 1000,
+      data: {
+        buyAmount: 0,
+        buyCount: 0,
+        sellAmount: 0,
+        sellCount: 0,
+      }
     }
   },
+
   computed: {
     totalOrders() {
-      return this.countUp.live + this.countDown.live
+      return this.data.buyCount + this.data.sellCount
     },
     totalVolume() {
-      return this.volUp.live + this.volDown.live
+      return this.data.buyAmount + this.data.sellAmount
     },
     countDelta() {
-      return this.countUp.live - this.countDown.live
+      return this.data.buyCount - this.data.sellCount
     },
     volDelta() {
-      return this.volUp.live - this.volDown.live
+      return this.data.buyAmount - this.data.sellAmount
     },
     ...mapState([
       'statsPeriod',
@@ -118,15 +108,15 @@ export default {
           break
       }
     })
-
-    socket.$on('trades.instant', this.onTrades)
-    socket.$on('historical', this.onFetch)
   },
   mounted() {
     this.rebuildStats()
+
+    socket.$on('trades.queued', this.onTrades)
+    socket.$on('historical', this.onFetch)
   },
   beforeDestroy() {
-    socket.$off('trades.instant', this.onTrades)
+    socket.$off('trades.queued', this.onTrades)
     socket.$off('historical', this.onFetch)
 
     clearInterval(this.statsRefreshCycleInterval)
@@ -134,13 +124,21 @@ export default {
     this.onStoreMutation()
   },
   methods: {
-    onTrades(trades, upVolume, downVolume) {
-      for (let i = 0; i < trades.length; i++) {
-        const side = trades[i][4] > 0 ? 'Up' : 'Down'
+    onTrades(trades, stats) {
+      console.log('onTrades', stats.buyCount, stats.sellCount)
+      // update display
+      this.buyAmount += this.preferQuoteCurrencySize ? stats.buyAmount : buySize
+      this.buyCount += stats.buyCount
+      this.sellAmount += this.preferQuoteCurrencySize ? stats.sellAmount : sellSize
+      this.sellCount += stats.sellCount
 
-        this['count' + side].count++
-        this['vol' + side].count += trades[i][3] * (this.preferQuoteCurrencySize ? trades[i][2] : 1)
-      }
+      // update temporary data
+      this.temp.buyAmount += this.preferQuoteCurrencySize ? stats.buyAmount : buySize
+      this.temp.buyCount += stats.buyCount
+      this.temp.sellAmount += this.preferQuoteCurrencySize ? stats.sellAmount : sellSize
+      this.temp.sellCount += stats.sellCount
+
+      this.hasTemporaryData = true
     },
     onFetch(trades, from, to) {
       const now = +new Date()
@@ -153,11 +151,17 @@ export default {
       clearInterval(this.statsRefreshCycleInterval)
 
       const now = +new Date()
+      
+      stacks.splice(0, stacks.length)
 
-      this.periodLabel = this.$root.ago(now - this.statsPeriod)
-      this.timestamp = now - this.statsPeriod
-      this.countUp.average = this.countDown.average = this.volUp.average = this.volDown.average = null
-      this.countUp.count = this.countDown.count = this.volUp.count = this.volDown.count = 0
+      this.hasTemporaryData = false
+      this.temp = Object.keys(this.data).reduce((obj, prop) => {
+        obj[prop] = 0
+
+        return obj
+      }, {})
+
+      console.log('rebuildStats')
 
       if (this.statsGraphs) {
         this.$refs.tradesMeasurement.clear();
@@ -166,61 +170,94 @@ export default {
         this.$refs.countDeltaMeasurement.clear();
       }
 
-      socket.trades
-        .filter(
-          (trade) =>
-            this.actives.indexOf(trade[0]) !== -1 &&
-            trade[1] >= now - this.statsPeriod
-        )
-        .forEach((trade) => {
-          const side = trade[4] > 0 ? 'Up' : 'Down'
+      for (let i = socket.trades.length - 1; i >= 0; i--) {
+        if (socket.trades[i].timestamp < now - this.statsPeriod) {
+          break;
+        }
 
-          this['count' + side].count++
-          this['vol' + side].count += trade[3] * (this.preferQuoteCurrencySize ? trade[2] : 1)
-        })
+        const isBuy = socket.trades[i].side === 'buy'
+        const amount = socket.trades[i].size * (this.preferQuoteCurrencySize ? socket.trades[i].price : 1)
+
+        if (stacks.length && socket.trades[i].timestamp > stacks[stacks.length - 1].timestamp) {
+          console.log('update stack (stacks.length - 1) at timestamp, index', (stacks.length - 1), stacks[stacks.length - 1].timestamp, new Date(stacks[stacks.length - 1].timestamp).toLocaleTimeString())
+          stacks[stacks.length - 1][isBuy ? 'buyAmount' : 'sellAmount'] += amount
+          stacks[stacks.length - 1][isBuy ? 'buyCount' : 'sellCount'] += socket.trades[i].count || 1
+        } else {
+          console.log(`create stack with ${isBuy ? socket.trades[i].count || 1 : 0} buys + ${!isBuy ? socket.trades[i].count || 1 : 0} sells, will expire at ${new Date(now - this.statsPrecision * (stacks.length + 1) + this.statsPeriod).toLocaleTimeString()}`)
+          stacks.push({
+            timestamp: now - this.statsPrecision * (stacks.length + 1), // stack "from" date
+            buyAmount: isBuy ? amount : 0,
+            buyCount: isBuy ? socket.trades[i].count || 1 : 0,
+            sellAmount: !isBuy ? amount : 0,
+            sellCount: !isBuy ? socket.trades[i].count || 1 : 0
+          })
+        }
+      }
 
       this.updateStats(now)
 
       this.statsRefreshCycleInterval = window.setInterval(
         this.updateStats.bind(this),
-        1000
+        500
       )
     },
     updateStats(timestamp = null) {
       const now = timestamp || +new Date()
 
-      if (this.countUp.average !== null || this.countDown.average !== null) {
-        this.countUp.live = Math.ceil(
-          (this.countUp.count + this.countUp.average) /
-            (1 + (now - this.timestamp) / this.statsPeriod)
-        )
-        this.countDown.live = Math.ceil(
-          (this.countDown.count + this.countDown.average) /
-            (1 + (now - this.timestamp) / this.statsPeriod)
-        )
-        this.volUp.live = parseFloat(
-          (this.volUp.count + this.volUp.average) /
-            (1 + (now - this.timestamp) / this.statsPeriod)
-        )
-        this.volDown.live = parseFloat(
-          (this.volDown.count + this.volDown.average) /
-            (1 + (now - this.timestamp) / this.statsPeriod)
-        )
-      } else {
-        this.countUp.live = this.countUp.count
-        this.countDown.live = this.countDown.count
-        this.volUp.live = this.volUp.count
-        this.volDown.live = this.volDown.count
+      let buyAmount = 0
+      let sellAmount = 0
+      let buyCount = 0
+      let sellCount = 0
+
+      let i = stacks.length;
+
+      if (this.hasTemporaryData) {
+        console.log('has temporary data')
+        if (!i || stacks[0].timestamp + this.statsPrecision < now) {
+          console.log(!i ? 'no stack => create first' : `latest stack too late, need new (${new Date(stacks[0].timestamp + this.statsPrecision).toLocaleTimeString()} < ${new Date(now).toLocaleTimeString()})`, `this stack will expire at ${new Date(now + this.statsPeriod).toLocaleTimeString()}`)
+          stacks.unshift({
+            timestamp: now,
+            buyAmount: this.temp.buyAmount,
+            buyCount: this.temp.buyCount,
+            sellAmount: this.temp.sellAmount,
+            sellCount: this.temp.sellCount
+          })
+        } else {
+          console.log('update latest stack')
+          stacks[0].buyAmount += this.temp.buyAmount
+          stacks[0].buyCount += this.temp.buyCount
+          stacks[0].sellAmount += this.temp.sellAmount
+          stacks[0].sellCount += this.temp.sellCount
+        }
+
+        this.temp.buyAmount = 0
+        this.temp.buyCount = 0
+        this.temp.sellAmount = 0
+        this.temp.sellCount = 0
+
+        this.hasTemporaryData = false
       }
 
-      if (now - this.timestamp >= this.statsPeriod) {
-        this.timestamp = now
-        this.countUp.average = parseInt(this.countUp.live)
-        this.countDown.average = parseInt(this.countDown.live)
-        this.volUp.average = parseFloat(this.volUp.live)
-        this.volDown.average = parseFloat(this.volDown.live)
-        this.countUp.count = this.countDown.count = this.volUp.count = this.volDown.count = 0
+      while (i--) {
+        if (stacks[i].timestamp + this.statsPeriod < now) {
+          console.log('stack with index' + i + 'expired', `(expiration: ${new Date(stacks[i].timestamp + this.statsPeriod).toLocaleTimeString()}) <  now (${new Date(now - this.statsPeriod).toLocaleTimeString()})`)
+          stacks.splice(i, 1)
+        } else {
+          buyAmount += stacks[i].buyAmount
+          sellAmount += stacks[i].sellAmount
+          buyCount += stacks[i].buyCount
+          sellCount += stacks[i].sellCount
+        }
       }
+
+      if (i !== stacks.length) {
+        console.log('stats count ===', stacks.length)
+      }
+
+      this.data.buyAmount = buyAmount
+      this.data.sellAmount = sellAmount
+      this.data.buyCount = buyCount
+      this.data.sellCount = sellCount
 
       if (this.statsGraphs) {
         this.$refs.tradesMeasurement.append(this.totalOrders);

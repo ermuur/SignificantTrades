@@ -84,7 +84,7 @@ export default {
     this.retrieveColorSteps()
 
     socket.$on('pairing', this.onPairing)
-    socket.$on('trades.instant', this.onTrades)
+    socket.$on('trades.raw', this.onTrades)
 
     this.onStoreMutation = this.$store.subscribe((mutation, state) => {
       switch (mutation.type) {
@@ -142,7 +142,7 @@ export default {
   },
   beforeDestroy() {
     socket.$off('pairing', this.onPairing)
-    socket.$off('trades.instant', this.onTrades)
+    socket.$off('trades.raw', this.onTrades)
 
     this.onStoreMutation()
 
@@ -154,25 +154,21 @@ export default {
     onPairing() {
       this.trades = []
     },
-    onTrades(trades, silent = false) {
+    onTrades(trades) {
       for (let trade of trades) {
-        this.processTrade(
-          trade,
-          Math.min(2000, trades[trades.length - 1][1] - trades[0][1]),
-          silent
-        )
+        this.processTrade(trade)
       }
     },
-    processTrade(trade, silent = false) {
-      const size = trade[3] * (this.preferQuoteCurrencySize ? trade[2] : 1)
+    processTrade(trade) {
+      const size = trade.size * (this.preferQuoteCurrencySize ? trade.price : 1)
 
       const multiplier =
-        typeof this.exchanges[trade[0]].threshold !== 'undefined'
-          ? +this.exchanges[trade[0]].threshold
+        typeof this.exchanges[trade.exchange].threshold !== 'undefined'
+          ? +this.exchanges[trade.exchange].threshold
           : 1
 
-      if (trade[5] === 1) {
-        if (!silent && this.sfx) {
+      if (trade.liquidation) {
+        if (this.sfx) {
           this.sfx.liquidation()
         }
 
@@ -183,12 +179,12 @@ export default {
           )}</strong>`
 
           liquidationMessage += `&nbsp;liquidated <strong>${
-            trade[4] > 0 ? 'SHORT' : 'LONG'
+            trade.side === 'buy' ? 'SHORT' : 'LONG'
           }</strong> @ <i class="icon-currency"></i> ${this.$root.formatPrice(
-            trade[2]
+            trade.price
           )}`
 
-          this.appendRow(trade, ['liquidation'], liquidationMessage)
+          this.appendRow(trade, '-liquidation', liquidationMessage)
         }
         return
       } else if (this.liquidationsOnlyList) {
@@ -196,7 +192,6 @@ export default {
       }
 
       if (
-        !silent &&
         this.useAudio &&
         ((this.audioIncludeInsignificants &&
           size > this.thresholds[1].amount * Math.max(0.1, multiplier) * 0.1) ||
@@ -205,30 +200,30 @@ export default {
         this.sfx &&
           this.sfx.tradeToSong(
             size / (this.thresholds[1].amount * Math.max(0.1, multiplier)),
-            trade[4]
+            trade.side
           )
       }
 
       // group by [exchange name + buy=1/sell=0] (ex bitmex1)
-      const tid = trade[0] + trade[4]
+      const tid = trade.exchange + trade.side
       const now = socket.getCurrentTimestamp()
 
       if (this.thresholds[0].amount) {
         if (this.ticks[tid]) {
-          if (!this.aggregationLag || now - this.ticks[tid][1] > this.aggregationLag) {
+          if (!this.aggregationLag || now - this.ticks[tid].timestamp > this.aggregationLag) {
             delete this.ticks[tid]
           } else {
             // average group prices
-            this.ticks[tid][2] =
-              (this.ticks[tid][2] * this.ticks[tid][3] + trade[2] * trade[3]) /
+            this.ticks[tid].price =
+              (this.ticks[tid].price * this.ticks[tid].size + trade.price * trade.size) /
               2 /
-              ((this.ticks[tid][3] + trade[3]) / 2)
+              ((this.ticks[tid].size + trade.size) / 2)
 
             // sum volume
-            this.ticks[tid][3] += trade[3]
+            this.ticks[tid].size += trade.size
 
             if (
-              this.ticks[tid][2] * this.ticks[tid][3] >=
+              this.ticks[tid].price * this.ticks[tid].size >=
               this.thresholds[0].amount * multiplier
             ) {
               this.appendRow(this.ticks[tid])
@@ -248,30 +243,23 @@ export default {
       this.appendRow(trade)
       // }, delay)
     },
-    appendRow(trade, classname = [], message = null) {
-      let icon
-      let image
-      let amount = trade[3] * (this.preferQuoteCurrencySize ? trade[2] : 1)
-
-      classname.push(trade[0])
+    appendRow(trade, classname = '', message = null) {
+      let amount = trade.size * (this.preferQuoteCurrencySize ? trade.price : 1)
 
       const multiplier =
-        this.exchanges[trade[0]] &&
-        typeof this.exchanges[trade[0]].threshold !== 'undefined'
-          ? +this.exchanges[trade[0]].threshold
+        this.exchanges[trade.exchange] &&
+        typeof this.exchanges[trade.exchange].threshold !== 'undefined'
+          ? +this.exchanges[trade.exchange].threshold
           : 1
 
-      let color = this.getTradeColor(trade, multiplier)
 
-      if (trade[4]) {
-        classname.push('buy')
-      } else {
-        classname.push('sell')
-      }
+      classname += ' -' + trade.exchange + ' -' + trade.side
 
       if (amount >= this.thresholds[1].amount * multiplier) {
-        classname.push('significant')
+        classname += ' -significant'
       }
+
+      let image
 
       for (let i = 0; i < this.thresholds.length; i++) {
         if (amount < this.thresholds[i].amount * multiplier) {
@@ -286,32 +274,31 @@ export default {
           ]
         }
 
-        classname.push('level-' + i)
+        classname += ' -level-' + i
       }
-
-      amount = this.$root.formatAmount(trade[2] * trade[3])
 
       if (image) {
         image = 'url(' + image + ')'
       }
 
+      let color = this.getTradeColor(trade, multiplier)
+
       this.trades.unshift({
         id: Math.random()
           .toString(36)
           .substring(7),
+        classname: classname,
+        message: message,
+        exchange: trade.exchange,
+        timestamp: trade.timestamp,
+        date: this.$root.ago(trade.timestamp),
+        price: this.$root.formatPrice(trade.price),
+        size: this.$root.formatAmount(trade.size),
+        amount: this.$root.formatAmount(trade.price * trade.size),
+        side: trade.side,
+        image: image,
         background: color.background,
         foreground: color.foreground,
-        side: trade[4] > 0 ? 'BUY' : 'SELL',
-        size: this.$root.formatAmount(trade[3]),
-        exchange: trade[0],
-        price: this.$root.formatPrice(trade[2]),
-        amount: amount,
-        classname: classname.map((a) => 'trades__item--' + a).join(' '),
-        icon: icon,
-        date: this.$root.ago(trade[1]),
-        timestamp: trade[1],
-        image: image,
-        message: message,
       })
 
       this.trades.splice(+this.maxRows || 20, this.trades.length)
@@ -442,11 +429,11 @@ export default {
       )
     },
     getTradeColor(trade, multiplier = 1) {
-      const amount = trade[3] * (this.preferQuoteCurrencySize ? trade[2] : 1)
+      const amount = trade.size * (this.preferQuoteCurrencySize ? trade.price : 1)
       const pct =
         amount /
         (this.thresholds[this.thresholds.length - 1].amount * multiplier)
-      const palette = this.colors[trade[4] > 0 ? 'buys' : 'sells']
+      const palette = this.colors[trade.side + 's']
 
       for (var i = 1; i < palette.length - 1; i++) {
         if (pct < palette[i].pct) {
@@ -549,7 +536,7 @@ export default {
     }
 
     @each $exchange in $exchanges {
-      .trades__item--#{$exchange} .trades__item__exchange {
+      .-#{$exchange} .trades__item__exchange {
         background-image: url('/static/exchanges/#{$exchange}.svg');
       }
     }
@@ -589,7 +576,7 @@ export default {
     }
   }
 
-  &.trades__item--sell {
+  &.-sell {
     background-blend-mode: soft-light;
     background-color: lighten($red, 35%);
     color: $red;
@@ -599,7 +586,7 @@ export default {
     }
   }
 
-  &.trades__item--buy {
+  &.-buy {
     background-color: lighten($green, 50%);
     color: $green;
 
@@ -608,16 +595,16 @@ export default {
     }
   }
 
-  &.trades__item--level-1 {
+  &.-level-1 {
     color: white;
   }
 
-  &.trades__item--liquidation {
+  &.-liquidation {
     background-color: $pink !important;
     color: white !important;
   }
 
-  &.trades__item--level-2 {
+  &.-level-2 {
     padding: 0.5em 0.6em;
 
     > div {
@@ -635,7 +622,7 @@ export default {
     }
   }
 
-  &.trades__item--level-3 {
+  &.-level-3 {
     box-shadow: 0 0 20px rgba(red, 0.5);
     z-index: 1;
   }
