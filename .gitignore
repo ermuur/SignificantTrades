@@ -1,4 +1,11 @@
 node_modules/
-server/config.json
-server/data/*
 .DS_Store
+npm-debug.log
+yarn-error.log
+
+# Editor directories and files
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
