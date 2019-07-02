@@ -155,7 +155,7 @@ const emitter = new Vue({
 
       setTimeout(this.connectExchanges.bind(this))
 
-      setInterval(this.processQueue.bind(this), 1000)
+      setInterval(this.processQueue.bind(this), 500)
     },
     connectExchanges(pair = null) {
       this.disconnectExchanges()
@@ -355,7 +355,7 @@ const emitter = new Vue({
             output[groups[id]].count++;
             output[groups[id]].price += +trades[i].price
             output[groups[id]].size += +trades[i].size
-            
+
             sums[id] += trades[i].price * trades[i].size
           } else {
             // index of the group

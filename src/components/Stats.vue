@@ -98,7 +98,7 @@ export default {
   },
   created() {
     const now = +new Date()
-
+    window.stacks = stacks;
     this.onStoreMutation = this.$store.subscribe((mutation, state) => {
       switch (mutation.type) {
         case 'reloadExchangeState':
@@ -125,7 +125,6 @@ export default {
   },
   methods: {
     onTrades(trades, stats) {
-      console.log('onTrades', stats.buyCount, stats.sellCount)
       // update display
       this.buyAmount += this.preferQuoteCurrencySize ? stats.buyAmount : buySize
       this.buyCount += stats.buyCount
@@ -151,7 +150,7 @@ export default {
       clearInterval(this.statsRefreshCycleInterval)
 
       const now = +new Date()
-      
+
       stacks.splice(0, stacks.length)
 
       this.hasTemporaryData = false
@@ -161,7 +160,7 @@ export default {
         return obj
       }, {})
 
-      console.log('rebuildStats')
+      // console.log('rebuildStats')
 
       if (this.statsGraphs) {
         this.$refs.tradesMeasurement.clear();
@@ -179,11 +178,11 @@ export default {
         const amount = socket.trades[i].size * (this.preferQuoteCurrencySize ? socket.trades[i].price : 1)
 
         if (stacks.length && socket.trades[i].timestamp > stacks[stacks.length - 1].timestamp) {
-          console.log('update stack (stacks.length - 1) at timestamp, index', (stacks.length - 1), stacks[stacks.length - 1].timestamp, new Date(stacks[stacks.length - 1].timestamp).toLocaleTimeString())
+          // console.log('update stack (stacks.length - 1) at timestamp, index', (stacks.length - 1), stacks[stacks.length - 1].timestamp, new Date(stacks[stacks.length - 1].timestamp).toLocaleTimeString())
           stacks[stacks.length - 1][isBuy ? 'buyAmount' : 'sellAmount'] += amount
           stacks[stacks.length - 1][isBuy ? 'buyCount' : 'sellCount'] += socket.trades[i].count || 1
         } else {
-          console.log(`create stack with ${isBuy ? socket.trades[i].count || 1 : 0} buys + ${!isBuy ? socket.trades[i].count || 1 : 0} sells, will expire at ${new Date(now - this.statsPrecision * (stacks.length + 1) + this.statsPeriod).toLocaleTimeString()}`)
+          // console.log(`create stack with ${isBuy ? socket.trades[i].count || 1 : 0} buys + ${!isBuy ? socket.trades[i].count || 1 : 0} sells, will expire at ${new Date(now - this.statsPrecision * (stacks.length + 1) + this.statsPeriod).toLocaleTimeString()}`)
           stacks.push({
             timestamp: now - this.statsPrecision * (stacks.length + 1), // stack "from" date
             buyAmount: isBuy ? amount : 0,
@@ -212,9 +211,9 @@ export default {
       let i = stacks.length;
 
       if (this.hasTemporaryData) {
-        console.log('has temporary data')
+        // console.log('has temporary data')
         if (!i || stacks[0].timestamp + this.statsPrecision < now) {
-          console.log(!i ? 'no stack => create first' : `latest stack too late, need new (${new Date(stacks[0].timestamp + this.statsPrecision).toLocaleTimeString()} < ${new Date(now).toLocaleTimeString()})`, `this stack will expire at ${new Date(now + this.statsPeriod).toLocaleTimeString()}`)
+          // console.log(!i ? 'no stack => create first' : `latest stack too late, need new (${new Date(stacks[0].timestamp + this.statsPrecision).toLocaleTimeString()} < ${new Date(now).toLocaleTimeString()})`, `this stack will expire at ${new Date(now + this.statsPeriod).toLocaleTimeString()}`)
           stacks.unshift({
             timestamp: now,
             buyAmount: this.temp.buyAmount,
@@ -223,7 +222,7 @@ export default {
             sellCount: this.temp.sellCount
           })
         } else {
-          console.log('update latest stack')
+          // console.log('update latest stack')
           stacks[0].buyAmount += this.temp.buyAmount
           stacks[0].buyCount += this.temp.buyCount
           stacks[0].sellAmount += this.temp.sellAmount
@@ -240,7 +239,7 @@ export default {
 
       while (i--) {
         if (stacks[i].timestamp + this.statsPeriod < now) {
-          console.log('stack with index' + i + 'expired', `(expiration: ${new Date(stacks[i].timestamp + this.statsPeriod).toLocaleTimeString()}) <  now (${new Date(now - this.statsPeriod).toLocaleTimeString()})`)
+          // console.log('stack with index' + i + 'expired', `(expiration: ${new Date(stacks[i].timestamp + this.statsPeriod).toLocaleTimeString()}) <  now (${new Date(now - this.statsPeriod).toLocaleTimeString()})`)
           stacks.splice(i, 1)
         } else {
           buyAmount += stacks[i].buyAmount
@@ -251,7 +250,7 @@ export default {
       }
 
       if (i !== stacks.length) {
-        console.log('stats count ===', stacks.length)
+        // console.log('stats count ===', stacks.length)
       }
 
       this.data.buyAmount = buyAmount
@@ -333,7 +332,7 @@ export default {
 
       opacity: .25;
 
-      stroke: none; 
+      stroke: none;
       fill: white;
     }
 

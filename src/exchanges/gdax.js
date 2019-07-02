@@ -33,7 +33,7 @@ class Gdax extends Exchange {
     if (!super.connect()) return
 
     this.api = new WebSocket(this.getUrl())
-    
+
     this.api.onmessage = (event) =>
       this.emitTrades(this.formatLiveTrades(JSON.parse(event.data)))
 
@@ -61,17 +61,17 @@ class Gdax extends Exchange {
   }
 
   formatLiveTrades(json) {
-    if (!json || json.size <= 0) {
+    if (!json || !json.size) {
       return
     }
 
     return [
       {
         exchange: this.id,
-        timestamp: +new Date(obj.time),
-        price: +obj.price,
-        size: +obj.size,
-        side: obj.side === 'buy' ? 'buy' : 'sell',
+        timestamp: +new Date(json.time),
+        price: +json.price,
+        size: +json.size,
+        side: json.side === 'buy' ? 'buy' : 'sell',
       },
     ]
   }
