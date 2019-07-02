@@ -6,3 +6,4 @@ admin.txt
 persistence.json
 data/*
 .DS_Store
+.vscode

@@ -1,171 +1,166 @@
-const Exchange = require('../exchange');
-const WebSocket = require('ws');
-const axios = require('axios');
+const Exchange = require('../exchange')
+const WebSocket = require('ws')
 
 class Kraken extends Exchange {
+  constructor(options) {
+    super(options)
 
-	constructor(options) {
-		super(options);
+    this.id = 'kraken'
 
-		this.id = 'kraken';
+    this.pairs = [
+      'ADACAD',
+      'ADAETH',
+      'ADAEUR',
+      'ADAUSD',
+      'ADAXBT',
+      'ATOMCAD',
+      'ATOMETH',
+      'ATOMEUR',
+      'ATOMUSD',
+      'ATOMXBT',
+      'BCHEUR',
+      'BCHUSD',
+      'BCHXBT',
+      'DASHEUR',
+      'DASHUSD',
+      'DASHXBT',
+      'EOSETH',
+      'EOSEUR',
+      'EOSUSD',
+      'EOSXBT',
+      'GNOETH',
+      'GNOEUR',
+      'GNOUSD',
+      'GNOXBT',
+      'QTUMCAD',
+      'QTUMETH',
+      'QTUMEUR',
+      'QTUMUSD',
+      'QTUMXBT',
+      'USDTUSD',
+      'ETCETH',
+      'ETCXBT',
+      'ETCEUR',
+      'ETCUSD',
+      'ETHXBT',
+      'ETHXBT.d',
+      'ETHCAD',
+      'ETHCAD.d',
+      'ETHEUR',
+      'ETHEUR.d',
+      'ETHGBP',
+      'ETHGBP.d',
+      'ETHJPY',
+      'ETHJPY.d',
+      'ETHUSD',
+      'ETHUSD.d',
+      'LTCXBT',
+      'LTCEUR',
+      'LTCUSD',
+      'MLNETH',
+      'MLNXBT',
+      'REPETH',
+      'REPXBT',
+      'REPEUR',
+      'REPUSD',
+      'XTZCAD',
+      'XTZETH',
+      'XTZEUR',
+      'XTZUSD',
+      'XTZXBT',
+      'XBTCAD',
+      'XBTCAD.d',
+      'XBTEUR',
+      'XBTEUR.d',
+      'XBTGBP',
+      'XBTGBP.d',
+      'XBTJPY',
+      'XBTJPY.d',
+      'XBTUSD',
+      'XBTUSD.d',
+      'XDGXBT',
+      'XLMXBT',
+      'XLMEUR',
+      'XLMUSD',
+      'XMRXBT',
+      'XMREUR',
+      'XMRUSD',
+      'XRPXBT',
+      'XRPCAD',
+      'XRPEUR',
+      'XRPJPY',
+      'XRPUSD',
+      'ZECXBT',
+      'ZECEUR',
+      'ZECJPY',
+      'ZECUSD'
+    ]
 
-		this.mapping = {
-			BCHEUR: 'BCHEUR',
-			BCHUSD: 'BCHUSD',
-			BCHBTC: 'BCHXBT',
-			DASHEUR: 'DASHEUR',
-			DASHUSD: 'DASHUSD',
-			DASHBTC: 'DASHXBT',
-			EOSETH: 'EOSETH',
-			EOSEUR: 'EOSEUR',
-			EOSUSD: 'EOSUSD',
-			EOSBTC: 'EOSXBT',
-			GNOETH: 'GNOETH',
-			GNOEUR: 'GNOEUR',
-			GNOUSD: 'GNOUSD',
-			GNOBTC: 'GNOXBT',
-			USDTUSD: 'USDTZUSD',
-			ETCETH: 'XETCXETH',
-			ETCBTC: 'XETCXXBT',
-			ETCEUR: 'XETCZEUR',
-			ETCUSD: 'XETCZUSD',
-			ETHBTC: 'XETHXXBT',
-			ETHCAD: 'XETHZCAD',
-			ETHEUR: 'XETHZEUR',
-			ETHGBP: 'XETHZGBP',
-			ETHJPY: 'XETHZJPY',
-			ETHUSD: 'XETHZUSD',
-			ICNETH: 'XICNXETH',
-			ICNBTC: 'XICNXXBT',
-			LTCBTC: 'XLTCXXBT',
-			LTCEUR: 'XLTCZEUR',
-			LTCUSD: 'XLTCZUSD',
-			MLNETH: 'XMLNXETH',
-			MLNBTC: 'XMLNXXBT',
-			REPETH: 'XREPXETH',
-			REPBTC: 'XREPXXBT',
-			REPEUR: 'XREPZEUR',
-			REPUSD: 'XREPZUSD',
-			BTCCAD: 'XXBTZCAD',
-			BTCEUR: 'XXBTZEUR',
-			BTCGBP: 'XXBTZGBP',
-			BTCJPY: 'XXBTZJPY',
-			BTCUSD: 'XXBTZUSD',
-			XDGBTC: 'XXDGXXBT',
-			XLMBTC: 'XXLMXXBT',
-			XLMEUR: 'XXLMZEUR',
-			XLMUSD: 'XXLMZUSD',
-			XMRBTC: 'XXMRXXBT',
-			XMREUR: 'XXMRZEUR',
-			XMRUSD: 'XXMRZUSD',
-			XRPBTC: 'XXRPXXBT',
-			XRPCAD: 'XXRPZCAD',
-			XRPEUR: 'XXRPZEUR',
-			XRPJPY: 'XXRPZJPY',
-			XRPUSD: 'XXRPZUSD',
-			ZECBTC: 'XZECXXBT',
-			ZECEUR: 'XZECZEUR',
-			ZECJPY: 'XZECZJPY',
-			ZECUSD: 'XZECZUSD'
-		};
+    this.mapping = name => {
+      name = name.trim().replace('/', '')
 
-		this.options = Object.assign({
-			url: 'https://api.kraken.com/0/public/Trades',
-			interval: 3000
-		}, this.options);
-	}
+      if (
+        this.pairs.indexOf(name) !== -1 ||
+        ((name = name.replace('BTC', 'XBT')) && this.pairs.indexOf(name) !== -1)
+      ) {
+        if (name.indexOf('/') === -1) {
+          name = name.slice(0, name.length - 3) + '/' + name.slice(name.length - 3, name.length)
+        }
 
-	connect(pair) {
-    if (!super.connect(pair))  
-      return;
+        return name
+      }
 
-		this.schedule();
+      return false
+    }
 
-		this.emitOpen();
-	}
+    this.options = Object.assign(
+      {
+        url: () => {
+          return `wss://ws.kraken.com`
+        }
+      },
+      this.options
+    )
+  }
 
-	schedule() {
-		clearTimeout(this.timeout);
-		this.timeout = setTimeout(this.get.bind(this), this.options.interval);
-	}
+  connect(pair) {
+    if (!super.connect(pair)) return
 
-	get() {
-		const token = axios.CancelToken;
-		this.source = token.source();
+    this.api = new WebSocket(this.getUrl())
 
-		const params = {
-			pair: this.pair
-		}
+    this.api.onmessage = event => this.emitData(this.format(JSON.parse(event.data)))
+    this.api.onopen = event => {
+      this.api.send(
+        JSON.stringify({
+          event: 'subscribe',
+          pair: [this.pair],
+          subscription: {
+            name: 'trade'
+          }
+        })
+      )
 
-		if (this.reference) {
-			params.since = this.reference;
-		}
+      this.emitOpen(event)
+    }
+    this.api.onclose = this.emitClose.bind(this)
+    this.api.onerror = this.emitError.bind(this, { message: 'Websocket error' })
+  }
 
-		axios.get(this.getUrl(), {
-			params: params,
-			cancelToken: this.source.token
-		})
-			.then(response => {
-				if (!response.data || (response.data.error && response.data.error.length)) {
-					throw new Error(response.data.error.join("\n"));
-				}
+  disconnect() {
+    if (!super.disconnect()) return
 
-				this.emitData(this.format(response.data));
+    if (this.api && this.api.readyState < 2) {
+      this.api.close()
+    }
+  }
 
-				this.schedule();
-			})
-			.catch(error => {
-				if (axios.isCancel(error)) {
-					return;
-				}
+  format(json) {
+    if (json && json[1] && json[1].length) {
+      return json[1].map(trade => [trade[2] * 1000, +trade[0], +trade[1], trade[3] === 'b' ? 1 : 0])
+    }
 
-				this.emitError(error);
-				this.emitClose();
-
-				return error;
-			})
-			.then(() => {
-				delete this.source;
-			})
-	}
-
-	disconnect() {
-    if (!super.disconnect())  
-      return;
-
-		clearTimeout(this.timeout);
-		this.source && this.source.cancel();
-
-		delete this.reference;
-
-		this.emitClose();
-	}
-
-	format(response) {
-		const initial = typeof this.reference === 'undefined';
-
-		if (response.result && response.result[this.pair]) {
-			if (response.result.last) {
-				this.reference = response.result.last;
-			}
-
-			if (!initial) {
-				const output = [];
-				for (let trade of response.result[this.pair]) {
-
-					output.push([
-						trade[2] * 1000, // timestamp
-						+trade[0], // price
-						+trade[1], // volume
-						trade[3] === 'b' ? 1 : 0, // is buy
-					]);
-				}
-
-				return output;
-			}
-		}
-	}
-
+    return false
+  }
 }
 
-module.exports = Kraken;
+module.exports = Kraken
