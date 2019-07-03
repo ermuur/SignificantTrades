@@ -327,6 +327,11 @@ export default {
           marker: {
             enabled: false,
             lineWidth: 2
+          },
+          states: {
+            inactive: {
+              opacity: 1
+            }
           }
         },
         area: {
@@ -753,7 +758,7 @@ export default {
 
       delete this.scrolling;
     },
-    
+
     startResizeChart(event) {
       if (event.which === 3) {
         return;
