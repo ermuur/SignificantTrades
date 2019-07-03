@@ -62,7 +62,7 @@
             class="settings__exchanges__item"
             href="#"
             v-on:click="options.toggleExchange(exchange)"
-            v-bind:class="{'settings__exchanges__item--active': options.exchanges.indexOf(exchange) !== -1}">
+            v-bind:class="{'settings__exchanges__item--active': options.exchanges.indexOf(exchange) === -1}">
             {{ exchange }}
           </a>
           <div v-if="!exchanges.length" class="mb8">You are not connected to any exchanges</div>

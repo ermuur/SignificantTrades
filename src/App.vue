@@ -43,7 +43,7 @@
       window.addEventListener('beforeunload', this.$root.autoSaveHandler);
 
       const settings = JSON.parse(localStorage.getItem('options'));
-      
+
       let qs;
 
       try {
@@ -70,10 +70,19 @@
       });
 
       if (settings && typeof settings === 'object') {
+        const settingsVersion = parseFloat((localStorage.getItem('version') || '').replace('.', '#').replace(/\./g, '').replace('#', '.')) || 0;
+
+        if (settingsVersion < 1.43 && settings['exchanges']) {
+          console.log('set exchanges to [] (previous was', settings['exchanges'], ')');
+          settings['exchanges'] = [];
+        }
+
         for (let name of Object.keys(settings)) {
           options[name] = settings[name];
         }
       }
+
+      localStorage.setItem('version', process.env.VERSION);
 
       window.formatPrice = function(price, precision) {
         price = +price;

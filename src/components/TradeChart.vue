@@ -820,7 +820,7 @@ export default {
       }
 
       if (options.exchanges !== null) {
-        data = data.filter(a => options.exchanges.indexOf(a[0]) !== -1);
+        data = data.filter(a => options.exchanges.indexOf(a[0]) === -1);
       }
 
       const sells = [];
@@ -854,7 +854,7 @@ export default {
             let opens = Object.keys(socket.opens);
 
             if (options.exchanges !== null) {
-              opens = opens.filter(a => options.exchanges.indexOf(a) !== -1);
+              opens = opens.filter(a => options.exchanges.indexOf(a) === -1);
             }
 
             if (opens.length) {
@@ -1222,7 +1222,7 @@ export default {
       };
 
       for (let trade of socket.trades) {
-        if (options.exchanges && options.exchanges.indexOf(trade[0]) === -1) {
+        if (options.exchanges && options.exchanges.indexOf(trade[0]) !== -1) {
           continue;
         }
 

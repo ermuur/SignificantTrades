@@ -120,16 +120,16 @@
       },
       onTrades(trades, silent = false) {
         for (let trade of trades) {
-          if (options.exchanges && options.exchanges.indexOf(trade[0]) === -1) {
+          if (options.exchanges && options.exchanges.indexOf(trade[0]) !== -1) {
             continue;
           }
 
           const size = trade[2] * trade[3];
-          
+
           if (trade[5] === 1) {
             this.sfx && !silent && this.sfx.liquidation();
 
-            if (size >= options.threshold) {
+            if (size >= options.threshold * (trade[0] === 'bitmex' ? 1 : .33)) {
               this.appendRow(trade, ['liquidation'], `${app.getAttribute('data-symbol')}<strong>${formatAmount(size, 1)}</strong> liq'd <strong>${trade[4] > 0 ? 'SHORT' : 'LONG'}</strong> <small>@ ${app.getAttribute('data-symbol')}${formatPrice(trade[2])}${trade[0] !== 'bitmex' ? ' (' + trade[0] + ')' : ''}</small>`);
             }
             continue;
