@@ -544,7 +544,7 @@ class Okex extends Exchange {
 
     this.api.onclose = event => {
       this.emitClose(event)
-      
+
       clearInterval(this.keepaliveInterval)
       clearTimeout(this.periodicFuturesRefreshTimeout)
       clearInterval(this.periodicLiquidationsRefreshInterval);
@@ -598,20 +598,22 @@ class Okex extends Exchange {
         product.quote_currency.replace(/usdt$/i, 'USD')
       ).toUpperCase() // base+quote ex: BTCUSD
 
+
       switch (type) {
         case 'spot':
+          console.log('register pair', pair, 'to', product.instrument_id)
           this.pairs[pair] = product.instrument_id
           break
         case 'swap':
+          console.log('register pair', pair + '-SWAP', 'to', product.instrument_id)
           this.pairs[pair + '-SWAP'] = product.instrument_id
           break
         case 'futures':
+          console.log('register pair', pair + '-' + product.alias.toUpperCase(), 'to', product.instrument_id)
           this.pairs[pair + '-' + product.alias.toUpperCase()] = product.instrument_id
           break
       }
     })
-
-    return output
   }
 
   initKeepAlive() {
@@ -649,6 +651,8 @@ class Okex extends Exchange {
   }
 
   initPeriodicLiquidationsRefresh() {
+    clearInterval(this.periodicLiquidationsRefreshInterval);
+
     this.liquidatableProducts = []
     this.liquidatableProductsReferences = {}
 
@@ -688,9 +692,9 @@ class Okex extends Exchange {
 
     axios
       .get(`https://www.okex.com/api/${type}/v3/instruments`)
-      .then(response => this.formatProducts(response, type))
+      .then(response => this.formatProducts(response.data, type))
       .catch(error => {
-        console.log('catch', error);
+        console.log('catch', error.message, 'on', `https://www.okex.com/api/${type}/v3/instruments`);
         if (axios.isCancel(error)) {
           console.log('axios.isCancel');
           return
@@ -701,6 +705,8 @@ class Okex extends Exchange {
         return error
       })
       .then(() => {
+        this.initPeriodicLiquidationsRefresh();
+
         delete this.productRequest
       })
   }
@@ -736,7 +742,7 @@ class Okex extends Exchange {
         }
 
         this.liquidatableProductsReferences[instrumentId] = +new Date(liquidations[0].created_at)
-        
+
         console.log('sending', liquidations.length, 'okex liquidations');
 
         this.emitData(
@@ -749,8 +755,7 @@ class Okex extends Exchange {
         )
       })
       .catch(error => {
-        console.log('catch');
-        console.log(error);
+        console.log('catch', error.message, 'on', `https://www.okex.com/api/${type}/v3/instruments/${instrumentId}/liquidation?status=1&limit=10`);
         if (axios.isCancel(error)) {
           console.log('axios.isCancel');
           return
