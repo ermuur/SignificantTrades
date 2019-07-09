@@ -52,6 +52,7 @@
 
 <script>
 import { mapState } from 'vuex'
+import { ago } from '../utils/helpers'
 
 import socket from '../services/socket'
 import Sfx from '../services/sfx'
@@ -88,21 +89,21 @@ export default {
 
     this.onStoreMutation = this.$store.subscribe((mutation, state) => {
       switch (mutation.type) {
-        case 'toggleAudio':
+        case 'TOGGLE_AUDIO':
           if (mutation.payload) {
             this.sfx = new Sfx()
           } else {
             this.sfx && this.sfx.disconnect() && delete this.sfx
           }
           break
-        case 'setThresholdGif':
+        case 'SET_THRESHOLD_GIF':
           this.fetchGifByKeyword(
             mutation.payload.value,
             mutation.payload.isDeleted
           )
           break
-        case 'setThresholdColor':
-        case 'setThresholdAmount':
+        case 'SET_THRESHOLD_COLOR':
+        case 'SET_THRESHOLD_AMOUNT':
           this.retrieveColorSteps()
           this.trades.splice(0, this.trades.length)
 
@@ -134,7 +135,7 @@ export default {
 
     this.timeAgoInterval = setInterval(() => {
       for (let element of this.$el.querySelectorAll('[timestamp]')) {
-        element.innerHTML = this.$root.ago(element.getAttribute('timestamp'))
+        element.innerHTML = ago(element.getAttribute('timestamp'))
       }
     }, 1000)
 
@@ -291,7 +292,7 @@ export default {
         message: message,
         exchange: trade.exchange,
         timestamp: trade.timestamp,
-        date: this.$root.ago(trade.timestamp),
+        date: ago(trade.timestamp),
         price: this.$root.formatPrice(trade.price),
         size: this.$root.formatAmount(trade.size),
         amount: this.$root.formatAmount(trade.price * trade.size),

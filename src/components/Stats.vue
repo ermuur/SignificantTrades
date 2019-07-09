@@ -102,8 +102,8 @@ export default {
     this.onStoreMutation = this.$store.subscribe((mutation, state) => {
       switch (mutation.type) {
         case 'reloadExchangeState':
-        case 'setStatsPeriod':
-        case 'toggleBaseCurrencySize':
+        case 'SET_STATS_PERIOD':
+        case 'SET_QUOTE_AS_PREFERED_CURRENCY':
           this.rebuildStats()
           break
       }

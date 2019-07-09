@@ -9,7 +9,7 @@
       v-for="(id, index) in list"
       :key="index"
       :class="'-' + id + ' -' + status[id].status"
-      @click="$store.commit('toggleExchangeVisibility', id)"
+      @click="$store.commit('TOGGLE_EXCHANGE_VISIBILITY', id)"
     >
       <div
         class="exchange__price"

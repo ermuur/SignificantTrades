@@ -43,6 +43,7 @@
 
 <script>
 import { mapState } from 'vuex'
+import { ago } from '../utils/helpers'
 
 import socket from '../services/socket'
 
@@ -77,7 +78,7 @@ export default {
 
     if (this.counters.length < this.countersSteps.length) {
       for (let i = this.counters.length; i < this.countersSteps.length; i++) {
-        this.labels.push(this.$root.ago(now - this.countersSteps[i]))
+        this.labels.push(ago(now - this.countersSteps[i]))
         this.counters.push([])
         this.strictSums.push([0, 0])
         this.stackedSums.push([0, 0])
@@ -86,10 +87,10 @@ export default {
 
     this.onStoreMutation = this.$store.subscribe((mutation, state) => {
       switch (mutation.type) {
-        case 'setTimeframe':
-        case 'setCounterStep':
-        case 'toggleCumulativeCounters':
-        case 'replaceCounterSteps':
+        case 'SET_TIMEFRAME':
+        case 'SET_COUNTER_VALUE':
+        case 'TOGGLE_CUMULATIVE_COUNTERS':
+        case 'REPLACE_COUNTERS':
         case 'reloadExchangeState':
           this.rebuildCounters()
           break
@@ -316,7 +317,7 @@ export default {
     },
     updateCounterStep(index, value) {
       if (!value) {
-        return this.$store.commit('setCounterStep', {
+        return this.$store.commit('SET_COUNTER_VALUE', {
           index: index,
           value: null,
         })
@@ -336,7 +337,7 @@ export default {
         milliseconds *= 1000 * 60
       }
 
-      return this.$store.commit('setCounterStep', {
+      return this.$store.commit('SET_COUNTER_VALUE', {
         index: index,
         value: milliseconds,
       })
@@ -353,7 +354,7 @@ export default {
       this.stackedSums.splice(0, this.stackedSums.length)
 
       for (let i = 0; i < this.countersSteps.length; i++) {
-        this.labels.push(this.$root.ago(now - this.countersSteps[i]))
+        this.labels.push(ago(now - this.countersSteps[i]))
         this.counters.push([])
         this.strictSums.push([0, 0])
         this.stackedSums.push([0, 0])
@@ -381,12 +382,12 @@ export default {
     },
     deleteCounter(index) {
       if (this.countersSteps.length === 1) {
-        this.$store.commit('toggleCounters', false)
+        this.$store.commit('TOGGLE_COUNTERS', false)
 
         return
       }
 
-      this.$store.commit('setCounterStep', { index: index, value: null })
+      this.$store.commit('SET_COUNTER_VALUE', { index: index, value: null })
     },
     getTicksTrades() {
       return socket.ticks

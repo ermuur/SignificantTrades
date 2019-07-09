@@ -16,7 +16,7 @@ import Liquid from '../exchanges/liquid'
 import Deribit from '../exchanges/deribit'
 import Bybit from '../exchanges/bybit'
 
-import store from '../services/store'
+import store from '../store'
 
 const emitter = new Vue({
   data() {
@@ -115,7 +115,7 @@ const emitter = new Vue({
 
       exchange.on('match', (pair) => {
         console.log(`[socket.exchange.on.match] ${exchange.id} matched ${pair}`)
-        store.commit('setExchangeMatch', {
+        store.commit('SET_EXCHANGE_MATCH', {
           exchange: exchange.id,
           match: pair,
         })
@@ -127,7 +127,7 @@ const emitter = new Vue({
         )
       })
 
-      store.commit('reloadExchangeState', exchange.id)
+      store.dispatch('reloadExchangeState', exchange.id)
     })
   },
   methods: {

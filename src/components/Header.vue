@@ -36,7 +36,7 @@
       <button
         type="button"
         :class="{ active: useAudio }"
-        @click="$store.commit('toggleAudio', !useAudio)"
+        @click="$store.commit('TOGGLE_AUDIO', !useAudio)"
       >
         <span class="icon-volume-muted"></span>
       </button>
@@ -52,6 +52,7 @@
 
 <script>
 import { mapState } from 'vuex'
+import { ago } from '../utils/helpers'
 
 import socket from '../services/socket'
 
@@ -93,7 +94,7 @@ export default {
       1000 * 30,
       1000 * 60,
       1000 * 60 * 3,
-    ].forEach((span) => (this.timeframes[span] = this.$root.ago(now - span)))
+    ].forEach((span) => (this.timeframes[span] = ago(now - span)))
 
     socket.$on('pairing', (pair, canFetch) => {
       this.canFetch = canFetch && this.showChart
@@ -127,11 +128,11 @@ export default {
       this.updateTimeframeLabel(timeframe)
 
       setTimeout(() => {
-        this.$store.commit('setTimeframe', timeframe)
+        this.$store.commit('SET_TIMEFRAME', timeframe)
       }, 50)
     },
     updateTimeframeLabel(timeframe) {
-      this.timeframeLabel = this.$root.ago(
+      this.timeframeLabel = ago(
         +new Date() - (timeframe || this.timeframe)
       )
     },
@@ -174,7 +175,7 @@ export default {
                 ((span * candleCount) / socket._fetchedTime)
             ) +
             '</span> ' +
-            this.$root.ago(now - span).trim()
+            ago(now - span).trim()
         }
       }
     },

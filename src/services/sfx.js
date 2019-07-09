@@ -1,6 +1,6 @@
 import Tuna from 'tunajs'
 
-import store from '../services/store'
+import store from '../store'
 
 class Sfx {
   constructor() {
@@ -42,7 +42,7 @@ class Sfx {
     setTimeout(() => {
       this.queued--
 
-      if (side) {
+      if (side === 'buy') {
         if (factor >= 10) {
           ;[659.26, 830.6, 987.76, 1318.52].forEach((f, i, a) =>
             setTimeout(

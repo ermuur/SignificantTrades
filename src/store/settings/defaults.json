@@ -1,0 +1,79 @@
+{
+  "pair": "BTCUSD",
+  "preferQuoteCurrencySize": true,
+  "thresholds": [
+    {
+      "amount": 100000,
+      "buyColor": "rgba(76,175,80,.33)",
+      "sellColor": "rgba(229,115,115,.33)"
+    },
+    {
+      "amount": 100000,
+      "buyColor": "rgb(91,130,48)",
+      "sellColor": "rgb(224,91,82)"
+    },
+    {
+      "amount": 1000000,
+      "gif": "cash",
+      "buyColor": "rgb(156,204,101)",
+      "sellColor": "rgb(244,67,54)"
+    },
+    {
+      "amount": 10000000,
+      "gif": "explosion",
+      "buyColor": "rgb(255,160,0)",
+      "sellColor": "rgb(233,30,99)"
+    }
+  ],
+  "exchanges": {
+    "huobi": { "disabled": true },
+    "okex": { "disabled": true },
+    "liquid": { "disabled": true },
+    "bithumb": { "disabled": true },
+    "hitbtc": { "disabled": true },
+    "coinex": { "disabled": true },
+    "bybit": { "disabled": true }
+  },
+  "maxRows": 20,
+  "decimalPrecision": null,
+  "aggregationLag": null,
+  "showLogos": false,
+  "liquidationsOnlyList": false,
+  "showCounters": false,
+  "counterPrecision": 10000,
+  "countersSteps": [60000, 300000, 900000, 1800000, 3600000, 7200000, 14400000],
+  "hideIncompleteCounter": true,
+  "cumulativeCounters": true,
+  "showStats": true,
+  "showChart": true,
+  "statsPeriod": 60000,
+  "statsGraphs": true,
+  "statsGraphsTimeframe": 3000,
+  "statsGraphsLength": 100,
+  "chartPadding": 0.075,
+  "chartGridlines": true,
+  "chartGridlinesGap": 80,
+  "timeframe": 10000,
+  "autoClearTrades": true,
+  "debug": false,
+  "useShades": true,
+  "useAudio": false,
+  "audioIncludeInsignificants": true,
+  "audioVolume": 1.5,
+  "settings": [],
+  "chartLiquidations": true,
+  "chartHeight": null,
+  "chartRange": 0,
+  "chartCandleWidth": 5,
+  "chartCandlestick": true,
+  "chartVolume": true,
+  "chartVolumeThreshold": 0,
+  "chartVolumeOpacity": 0.75,
+  "chartVolumeAverage": true,
+  "chartVolumeAverageLength": 14,
+  "chartSma": true,
+  "chartSmaLength": 14,
+  "chartAutoScale": true,
+  "showExchangesBar": true,
+  "showThresholdsAsTable": false
+}

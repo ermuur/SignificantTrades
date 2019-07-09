@@ -1,37 +1,73 @@
 {
-    "layout": {
-        "backgroundColor": "#171b29",
-        "textColor": "white",
-        "fontSize": "12",
-        "fontFamily": "Roboto Condensed"
+    "chart": {
+        "crosshair": {
+            "vertLine": {
+                "color": "rgba(255, 255, 255, .5)",
+                "width": 0.5,
+                "style": 2,
+                "visible": true,
+                "labelVisible": false
+            },
+            "horzLine": {
+                "color": "rgba(255, 255, 255, .5)",
+                "width": 0.5,
+                "style": 2,
+                "visible": true,
+                "labelBackgroundColor": "red",
+                "labelVisible": true
+            },
+            "mode": 2
+        },
+        "layout": {
+            "backgroundColor": "#171b29",
+            "textColor": "white",
+            "fontFamily": "Roboto Condensed"
+        },
+        "grid": {
+            "horzLines": {
+                "visible": false
+            },
+            "vertLines": {
+                "visible": false
+            }
+        },
+        "timeScale": {
+            "rightOffset": 12,
+            "fixLeftEdge": true,
+            "lockVisibleTimeRangeOnResize": true,
+            "rightBarStaysOnScroll": true,
+            "borderVisible": true,
+            "borderColor": "#fff000",
+            "visible": true,
+            "timeVisible": true,
+            "secondsVisible": false
+        },
+        "priceScale": {
+            "position": "right",
+            "mode": 1,
+            "borderColor": "#fff000"
+        }
     },
     "series": {
         "price": {
+            "baseLineStyle": false,
             "lastValueVisible": true,
-            "title": "XBTUSD",
             "priceLineVisible": true,
             "priceLineWidth": 1,
-            "priceLineColor": "rgba(255, 255, 255, .3)",
-            "priceLineStyle": 2,
+            "priceLineColor": "#ffffff",
+            "priceLineStyle": 4,
             "priceFormat": {
                 "type": "price",
                 "precision": 2
             },
-            "baseLineVisible": false,
-
             "overlay": false,
             "scaleMargins": {
                 "top": 0,
                 "bottom": 0
             },
-
+            "borderVisible": false,
             "upColor": "rgb(195, 168, 122)",
             "downColor": "rgb(193, 64, 71)",
-            "wickVisible": true,
-            "borderVisible": false,
-            "borderColor": "string",
-            "borderUpColor": "string",
-            "borderDownColor": "string",
             "wickColor": "rgba(255, 255, 255, .5)",
             "wickUpColor": "rgba(195, 168, 122, .5)",
             "wickDownColor": "rgba(193, 64, 71, .5)"

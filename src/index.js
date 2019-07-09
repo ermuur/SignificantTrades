@@ -2,7 +2,7 @@ import Vue from 'vue'
 import App from './App.vue'
 import VueTippy from 'vue-tippy'
 
-import store from './services/store'
+import store from './store'
 
 Vue.use(VueTippy, {
   maxWidth: '200px',

@@ -34,7 +34,7 @@
             placeholder="BTCUSD"
             class="form-control"
             :value="pair"
-            @change="$store.commit('setPair', $event.target.value)"
+            @change="$store.commit('SET_PAIR', $event.target.value)"
           />
           <small class="help-text mt8" v-if="showPairSubdomainHelp"
             ><i class="icon-info-circle"></i> Consider using
@@ -56,7 +56,7 @@
                 class="form-control"
                 :checked="preferQuoteCurrencySize"
                 @change="
-                  $store.commit('toggleBaseCurrencySize', $event.target.checked)
+                  $store.commit('SET_QUOTE_AS_PREFERED_CURRENCY', $event.target.checked)
                 "
               />
               <div on="quote" off="base"></div>
@@ -66,7 +66,7 @@
         </div>
         <div
           class="settings__title"
-          @click="$store.commit('toggleSettingsPanel', 'list')"
+          @click="$store.commit('TOGGLE_SETTINGS_PANEL', 'list')"
           :class="{ closed: settings.indexOf('list') > -1 }"
         >
           Trades list <i class="icon-up"></i>
@@ -89,7 +89,7 @@
                 step="1"
                 class="form-control"
                 :value="maxRows"
-                @change="$store.commit('setMaxRows', $event.target.value)"
+                @change="$store.commit('SET_MAX_ROWS', $event.target.value)"
               />
             </div>
             
@@ -113,7 +113,7 @@
         </div>
         <div
           class="settings__title"
-          @click="$store.commit('toggleSettingsPanel', 'thresholds')"
+          @click="$store.commit('TOGGLE_SETTINGS_PANEL', 'thresholds')"
           :class="{ closed: settings.indexOf('thresholds') > -1 }"
         >
           Thresholds ({{ thresholds.length }}) <i class="icon-up"></i>
@@ -125,7 +125,7 @@
             v-tippy
             title="Switch thresholds display"
             @click="
-              $store.commit('toggleTresholdsTable', !showThresholdsAsTable)
+              $store.commit('TOGGLE_THRESHOLDS_TABLE', !showThresholdsAsTable)
             "
             >{{ showThresholdsAsTable ? 'slider' : 'table' }}</a
           >
@@ -133,7 +133,7 @@
         </div>
         <div
           class="settings__title"
-          @click="$store.commit('toggleSettingsPanel', 'audio')"
+          @click="$store.commit('TOGGLE_SETTINGS_PANEL', 'audio')"
           :class="{ closed: settings.indexOf('audio') > -1 }"
         >
           Audio <i class="icon-up"></i>
@@ -152,7 +152,7 @@
                 type="checkbox"
                 class="form-control"
                 :checked="useAudio"
-                @change="$store.commit('toggleAudio', $event.target.checked)"
+                @change="$store.commit('TOGGLE_AUDIO', $event.target.checked)"
               />
               <div></div>
             </label>
@@ -169,7 +169,7 @@
                 :checked="audioIncludeInsignificants"
                 @change="
                   $store.commit(
-                    'toggleAudioIncludeInsignificants',
+                    'TOGGLE_WIDE_AUDIO_THRESHOLD',
                     $event.target.checked
                   )
                 "
@@ -184,13 +184,13 @@
               max="10"
               step=".1"
               :value="audioVolume"
-              @change="$store.commit('setAudioVolume', $event.target.value)"
+              @change="$store.commit('SET_AUDIO_VOLUME', $event.target.value)"
             />
           </div>
         </div>
         <div
           class="settings__title"
-          @click="$store.commit('toggleSettingsPanel', 'stats')"
+          @click="$store.commit('TOGGLE_SETTINGS_PANEL', 'stats')"
           :class="{ closed: settings.indexOf('stats') > -1 }"
         >
           Stats <i class="icon-up"></i>
@@ -210,7 +210,7 @@
                   type="checkbox"
                   class="form-control"
                   :checked="showStats"
-                  @change="$store.commit('toggleStats', $event.target.checked)"
+                  @change="$store.commit('TOGGLE_STATS', $event.target.checked)"
                 />
                 <div></div>
               </label>
@@ -222,7 +222,7 @@
                 type="string"
                 class="form-control"
                 :value="statsPeriodStringified"
-                @change="$store.commit('setStatsPeriod', $event.target.value)"
+                @change="$store.commit('SET_STATS_PERIOD', $event.target.value)"
                 placeholder="Enter a timeframe (ie: 1m)"
               />
             </div>
@@ -236,7 +236,7 @@
                   type="checkbox"
                   class="form-control"
                   :checked="statsGraphs"
-                  @change="$store.commit('toggleStatsGraphs', $event.target.checked)"
+                  @change="$store.commit('TOGGLE_STATS_GRAPHS', $event.target.checked)"
                 />
                 <div>
                   <i class="icon-line-chart"></i>
@@ -258,7 +258,7 @@
                 placeholder="time in ms"
                 class="form-control"
                 :value="statsGraphsTimeframe"
-                @change="$store.commit('setStatsGraphsTimeframe', $event.target.value)"
+                @change="$store.commit('TOGGLE_STATS_TIMEFRAME', $event.target.value)"
               />
             </div>
             <div class="form-group">
@@ -274,14 +274,14 @@
                 placeholder="nb of ticks"
                 class="form-control"
                 :value="statsGraphsLength"
-                @change="$store.commit('setStatsGraphsLength', $event.target.value)"
+                @change="$store.commit('TOGGLE_STATS_LENGTH', $event.target.value)"
               />
             </div>
           </div>-->
         </div>
         <div
           class="settings__title"
-          @click="$store.commit('toggleSettingsPanel', 'counters')"
+          @click="$store.commit('TOGGLE_SETTINGS_PANEL', 'counters')"
           :class="{ closed: settings.indexOf('counters') > -1 }"
         >
           Counter <i class="icon-up"></i>
@@ -300,7 +300,7 @@
                 type="checkbox"
                 class="form-control"
                 :checked="showCounters"
-                @change="$store.commit('toggleCounters', $event.target.checked)"
+                @change="$store.commit('TOGGLE_COUNTERS', $event.target.checked)"
               />
               <div></div>
             </label>
@@ -319,7 +319,7 @@
                 :checked="cumulativeCounters"
                 @change="
                   $store.commit(
-                    'toggleCumulativeCounters',
+                    'TOGGLE_CUMULATIVE_COUNTERS',
                     $event.target.checked
                   )
                 "
@@ -342,7 +342,7 @@
         </div>
         <div
           class="settings__title"
-          @click="$store.commit('toggleSettingsPanel', 'chart')"
+          @click="$store.commit('TOGGLE_SETTINGS_PANEL', 'chart')"
           :class="{ closed: settings.indexOf('chart') > -1 }"
         >
           Chart <i class="icon-up"></i>
@@ -361,7 +361,7 @@
                 type="checkbox"
                 class="form-control"
                 :checked="showChart"
-                @change="$store.commit('toggleChart', $event.target.checked)"
+                @change="$store.commit('TOGGLE_CHART', $event.target.checked)"
               />
               <div></div>
             </label>
@@ -378,7 +378,7 @@
                   class="form-control"
                   :checked="chartGridlines"
                   @change="
-                    $store.commit('toggleChartGridlines', $event.target.checked)
+                    $store.commit('TOGGLE_CHART_GRID', $event.target.checked)
                   "
                 />
                 <div></div>
@@ -386,7 +386,7 @@
                   >Horizontal ticks (every
                   <editable
                     :content="chartGridlinesGap"
-                    @output="$store.commit('setChartGridlinesGap', $event)"
+                    @output="$store.commit('SET_CHART_GRID_GAP', $event)"
                   ></editable>
                   px)</span
                 >
@@ -404,7 +404,7 @@
                   :checked="chartPadding"
                   @change="
                     $store.commit(
-                      'setChartPadding',
+                      'SET_CHART_PADDING',
                       $event.target.checked ? 0.05 : 0
                     )
                   "
@@ -415,7 +415,7 @@
                   <editable
                     :content="(chartPadding * 100).toFixed(2)"
                     @output="
-                      $store.commit('setChartPadding', ($event || 0) / 100)
+                      $store.commit('SET_CHART_PADDING', ($event || 0) / 100)
                     "
                   ></editable>
                   % margin on the right</span
@@ -433,7 +433,7 @@
                   class="form-control"
                   :checked="chartCandlestick"
                   @change="
-                    $store.commit('toggleCandlestick', $event.target.checked)
+                    $store.commit('TOGGLE_CANDLESTICK', $event.target.checked)
                   "
                 />
                 <div></div>
@@ -451,7 +451,7 @@
                   class="form-control"
                   :checked="chartLiquidations"
                   @change="
-                    $store.commit('toggleLiquidations', $event.target.checked)
+                    $store.commit('TOGGLE_LIQUIDATIONS', $event.target.checked)
                   "
                 />
                 <div></div>
@@ -468,7 +468,7 @@
                   type="checkbox"
                   class="form-control"
                   :checked="chartVolume"
-                  @change="$store.commit('toggleVolume', $event.target.checked)"
+                  @change="$store.commit('TOGGLE_VOLUME_SERIE', $event.target.checked)"
                 />
                 <div></div>
                 <span @click.stop.prevent>Volume</span>
@@ -478,7 +478,7 @@
                   only sum trades above <i class="icon-quote"></i>
                   <editable
                     :content="chartVolumeThreshold"
-                    @output="$store.commit('setVolumeThreshold', $event)"
+                    @output="$store.commit('SET_VOLUME_SERIE_THRESHOLD', $event)"
                   ></editable>
                 </div>
                 <div>
@@ -490,7 +490,7 @@
                     step=".01"
                     :value="chartVolumeOpacity"
                     @change="
-                      $store.commit('setVolumeOpacity', $event.target.value)
+                      $store.commit('SET_VOLUME_BAR_OPACITY', $event.target.value)
                     "
                   />
                 </div>
@@ -506,7 +506,7 @@
                   type="checkbox"
                   class="form-control"
                   :checked="chartSma"
-                  @change="$store.commit('toggleSma', $event.target.checked)"
+                  @change="$store.commit('TOGGLE_PRICE_SMA', $event.target.checked)"
                 />
                 <div></div>
                 <span @click.stop.prevent>Price SMA</span>
@@ -515,7 +515,7 @@
                 period
                 <editable
                   :content="chartSmaLength"
-                  @output="$store.commit('setSmaLength', $event)"
+                  @output="$store.commit('SET_PRICE_SMA_PERIOD', $event)"
                 ></editable>
               </div>
             </div>
@@ -530,7 +530,7 @@
                   class="form-control"
                   :checked="chartVolumeAverage"
                   @change="
-                    $store.commit('toggleVolumeAverage', $event.target.checked)
+                    $store.commit('TOGGLE_VOLUME_AVERAGE', $event.target.checked)
                   "
                 />
                 <div></div>
@@ -543,7 +543,7 @@
                 period
                 <editable
                   :content="chartVolumeAverageLength"
-                  @output="$store.commit('setVolumeAverageLength', $event)"
+                  @output="$store.commit('SET_VOLUME_AVERAGE_PERIOD', $event)"
                 ></editable>
               </div>
             </div>
@@ -559,7 +559,7 @@
                   :checked="showExchangesBar"
                   @change="
                     $store.commit(
-                      'toggleExchangesBar',
+                      'TOGGLE_EXCHANGES_BAR',
                       $event.target.checked
                     )
                   "
@@ -580,7 +580,7 @@
                   :checked="autoClearTrades"
                   @change="
                     $store.commit(
-                      'toggleAutoClearTrades',
+                      'TOGGLE_AUTO_CLEAR',
                       $event.target.checked
                     )
                   "
@@ -593,7 +593,7 @@
         </div>
         <div
           class="settings__title"
-          @click="$store.commit('toggleSettingsPanel', 'exchanges')"
+          @click="$store.commit('TOGGLE_SETTINGS_PANEL', 'exchanges')"
           :class="{ closed: settings.indexOf('exchanges') > -1 }"
         >
           Exchanges <i class="icon-up"></i>
@@ -612,7 +612,7 @@
         </div>
         <div
           class="settings__title"
-          @click="$store.commit('toggleSettingsPanel', 'other')"
+          @click="$store.commit('TOGGLE_SETTINGS_PANEL', 'other')"
           :class="{ closed: settings.indexOf('other') > -1 }"
         >
           Other <i class="icon-up"></i>
@@ -626,7 +626,7 @@
                 type="checkbox"
                 class="form-control"
                 :checked="!!decimalPrecision"
-                @change="$store.commit('setDecimalPrecision', decimalPrecision ? null : 2)"
+                @change="$store.commit('SET_DECIMAL_PRECISION', decimalPrecision ? null : 2)"
               />
               <div></div>
               <span @click.stop.prevent="$event.target.children[0].focus()">
@@ -634,7 +634,7 @@
                 <editable
                   placeholder="auto"
                   :content="decimalPrecision"
-                  @output="$store.commit('setDecimalPrecision', $event)"
+                  @output="$store.commit('SET_DECIMAL_PRECISION', $event)"
                 ></editable>
                 decimal(s)
               </span>
@@ -648,7 +648,7 @@
                 type="checkbox"
                 class="form-control"
                 :checked="!!aggregationLag"
-                @change="$store.commit('setAggregationLag', aggregationLag ? null : 1000)"
+                @change="$store.commit('SET_AGGREGATION_LAG', aggregationLag ? null : 1000)"
               />
               <div></div>
               <span @click.stop.prevent="$event.target.children[0].focus()">
@@ -656,7 +656,7 @@
                 <editable
                   placeholder="no lag"
                   :content="aggregationLag"
-                  @output="$store.commit('setAggregationLag', $event)"
+                  @output="$store.commit('SET_AGGREGATION_LAG', $event)"
                 ></editable>
                 ms
               </span>
@@ -670,7 +670,7 @@
                 type="checkbox"
                 class="form-control"
                 :checked="liquidationsOnlyList"
-                @change="$store.commit('toggleLiquidationsOnlyList', $event.target.checked)"
+                @change="$store.commit('TOGGLE_LIQUIDATIONS_ONLY', $event.target.checked)"
               />
               <div></div>
               <span><strong>ONLY</strong> show liquidations</span>
@@ -715,6 +715,7 @@
 
 <script>
 import { mapState } from 'vuex'
+import { ago } from '../utils/helpers'
 
 import socket from '../services/socket'
 
@@ -805,14 +806,14 @@ export default {
   },
   methods: {
     stringifyStatsPeriod() {
-      this.statsPeriodStringified = this.$root.ago(
+      this.statsPeriodStringified = ago(
         +new Date() - this.statsPeriod
       )
     },
     stringifyCounters() {
       const now = +new Date()
       this.countersStepsStringified = this.countersSteps
-        .map((a) => this.$root.ago(now - a))
+        .map((a) => ago(now - a))
         .join(', ')
     },
     replaceCounters(value) {
@@ -843,7 +844,7 @@ export default {
         return
       }
 
-      this.$store.commit('replaceCounterSteps', counters)
+      this.$store.commit('REPLACE_COUNTERS', counters)
 
       this.stringifyCounters()
       this.stringifyStatsPeriod()

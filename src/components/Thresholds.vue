@@ -18,7 +18,7 @@
             placeholder="Amount*"
             :value="thresholds[index].amount"
             @change="
-              $store.commit('setThresholdAmount', {
+              $store.commit('SET_THRESHOLD_AMOUNT', {
                 index: index,
                 value: $event.target.value,
               })
@@ -32,7 +32,7 @@
             placeholder="Keyword"
             :value="thresholds[index].gif"
             @change="
-              $store.commit('setThresholdGif', {
+              $store.commit('SET_THRESHOLD_GIF', {
                 index: index,
                 value: $event.target.value,
               })
@@ -93,7 +93,7 @@
           <editable
             :content="thresholds[selectedIndex].amount"
             @output="
-              $store.commit('setThresholdAmount', {
+              $store.commit('SET_THRESHOLD_AMOUNT', {
                 index: selectedIndex,
                 value: $event,
               })
@@ -112,7 +112,7 @@
             class="form-control"
             :value="thresholds[selectedIndex].gif"
             @change="
-              $store.commit('setThresholdGif', {
+              $store.commit('SET_THRESHOLD_GIF', {
                 index: selectedIndex,
                 value: $event.target.value,
               })
@@ -134,7 +134,7 @@
                 :value="thresholds[selectedIndex].buyColor"
                 :style="{ backgroundColor: thresholds[selectedIndex].buyColor }"
                 @change="
-                  $store.commit('setThresholdColor', {
+                  $store.commit('SET_THRESHOLD_COLOR', {
                     index: selectedIndex,
                     side: 'buyColor',
                     value: $event.target.value,
@@ -156,7 +156,7 @@
                   backgroundColor: thresholds[selectedIndex].sellColor,
                 }"
                 @change="
-                  $store.commit('setThresholdColor', {
+                  $store.commit('SET_THRESHOLD_COLOR', {
                     index: selectedIndex,
                     side: 'sellColor',
                     value: $event.target.value,
@@ -206,16 +206,16 @@ export default {
   created() {
     this.onStoreMutation = this.$store.subscribe((mutation, state) => {
       switch (mutation.type) {
-        case 'toggleSettingsPanel':
-        case 'toggleTresholdsTable':
+        case 'TOGGLE_SETTINGS_PANEL':
+        case 'TOGGLE_THRESHOLDS_TABLE':
           if (this.picking) {
             this.closePicker(event)
           }
 
           if (
-            (mutation.type === 'toggleSettingsPanel' &&
+            (mutation.type === 'TOGGLE_SETTINGS_PANEL' &&
               mutation.payload === 'thresholds') ||
-            (mutation.type === 'toggleTresholdsTable' &&
+            (mutation.type === 'TOGGLE_THRESHOLDS_TABLE' &&
               mutation.payload === false)
           ) {
             this.rendering = true
@@ -226,11 +226,11 @@ export default {
             }, 100)
           }
           break
-        case 'setThresholdAmount':
+        case 'SET_THRESHOLD_AMOUNT':
           this.reorderThresholds()
           this.refreshHandlers()
           break
-        case 'setThresholdColor':
+        case 'SET_THRESHOLD_COLOR':
           this.refreshGradients()
           break
       }
@@ -374,7 +374,7 @@ export default {
     endDrag(event) {
       if (this.selectedElement) {
         if (this.dragging) {
-          this.$store.commit('setThresholdAmount', {
+          this.$store.commit('SET_THRESHOLD_AMOUNT', {
             index: this.selectedIndex,
             value: this.thresholds[this.selectedIndex].amount,
           })
@@ -508,7 +508,7 @@ export default {
       }
 
       if (!this.thresholds[index][side]) {
-        this.$store.commit('setThresholdColor', {
+        this.$store.commit('SET_THRESHOLD_COLOR', {
           index: index,
           side: side,
           value: '#ffffff',
@@ -569,7 +569,7 @@ export default {
         return
       }
 
-      this.$store.commit('setThresholdColor', {
+      this.$store.commit('SET_THRESHOLD_COLOR', {
         index: this.picking.index,
         side: this.picking.side,
         value: `rgba(${color.rgba.r}, ${color.rgba.g}, ${color.rgba.b}, ${

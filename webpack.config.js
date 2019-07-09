@@ -1,6 +1,8 @@
 var path = require('path')
 var webpack = require('webpack')
 
+require('dotenv').config()
+
 module.exports = {
   entry: './src/index.js',
   output: {
@@ -90,7 +92,7 @@ module.exports = {
 }
 
 var date = new Date();
-
+console.log(process.env.API_URL);
 module.exports.plugins = (module.exports.plugins || []).concat([
   new webpack.DefinePlugin({
     'process.env': {
@@ -98,7 +100,7 @@ module.exports.plugins = (module.exports.plugins || []).concat([
       VERSION: JSON.stringify(require("./package.json").version),
       BUILD_DATE: JSON.stringify(date.getDate() + ' ' + date.toLocaleString('en-US', {month: 'short'}).toLowerCase()),
       PROXY_URL: JSON.stringify(process.env.PROXY_URL || 'https://cors.aggr.trade/'),
-      API_URL: JSON.stringify(process.env.API_URL || 'https://api.aggr.trade/{pair}/historical/{from}/{to}/{timeframe}/'),
+      API_URL: JSON.stringify(process.env.API_URL || 'http://localhost:3000/historical/{from}/{to}/{timeframe}'),
       API_SUPPORTED_PAIRS: JSON.stringify(['BTCUSD'])
     }
   })
