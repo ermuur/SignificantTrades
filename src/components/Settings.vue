@@ -92,7 +92,7 @@
                 @change="$store.commit('SET_MAX_ROWS', $event.target.value)"
               />
             </div>
-            
+
             <div
               class="form-group column__tight"
               title="Show exchange's logo when available"
@@ -104,7 +104,7 @@
                   type="checkbox"
                   class="form-control"
                   :checked="showLogos"
-                  @change="$store.commit('toggleLogos', $event.target.checked)"
+                  @change="$store.commit('settings/TOGGLE_LOGOS', $event.target.checked)"
                 />
                 <div></div>
               </label>

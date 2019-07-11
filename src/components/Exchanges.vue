@@ -37,7 +37,8 @@ export default {
     }
   },
   computed: {
-    ...mapState(['actives', 'exchanges']),
+    ...mapState('app', ['actives']),
+    ...mapState('settings', ['exchanges']),
   },
   created() {
     this.list = this.actives.slice(0, this.actives.length)
@@ -86,7 +87,7 @@ export default {
       const now = +new Date()
       for (let i = 0; i < socket.exchanges.length; i++) {
         const id = socket.exchanges[i].id
-        
+
         if (this.actives.indexOf(socket.exchanges[i].id) === -1 || this.status[id].price === socket.exchanges[i].price) {
           continue
         }

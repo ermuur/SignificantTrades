@@ -47,7 +47,8 @@ export default {
     }
   },
   computed: {
-    ...mapState(['pair', 'timeframe', 'actives', 'exchanges'])
+    ...mapState('settings', ['pair', 'timeframe', 'exchanges']),
+    ...mapState('app', ['actives'])
   },
   created() {
   },

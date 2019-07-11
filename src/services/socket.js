@@ -55,31 +55,31 @@ const emitter = new Vue({
   },
   computed: {
     pair() {
-      return store.state.pair
+      return store.state.settings.pair
     },
     timeframe() {
-      return store.state.timeframe
+      return store.state.settings.timeframe
     },
     exchangesSettings() {
-      return store.state.exchanges
-    },
-    actives() {
-      return store.state.actives
+      return store.state.settings.exchanges
     },
     showChart() {
-      return store.state.showChart
+      return store.state.settings.showChart
     },
     chartRange() {
-      return store.state.chartRange
+      return store.state.settings.chartRange
     },
     showCounters() {
-      return store.state.showCounters
+      return store.state.settings.showCounters
     },
     countersSteps() {
-      return store.state.countersSteps
+      return store.state.settings.countersSteps
     },
     isLoading() {
-      return store.state.isLoading
+      return store.state.settings.isLoading
+    },
+    actives() {
+      return store.state.app.actives
     },
   },
   created() {
@@ -115,7 +115,7 @@ const emitter = new Vue({
 
       exchange.on('match', (pair) => {
         console.log(`[socket.exchange.on.match] ${exchange.id} matched ${pair}`)
-        store.commit('SET_EXCHANGE_MATCH', {
+        store.commit('settings/SET_EXCHANGE_MATCH', {
           exchange: exchange.id,
           match: pair,
         })
@@ -127,7 +127,7 @@ const emitter = new Vue({
         )
       })
 
-      store.dispatch('reloadExchangeState', exchange.id)
+      store.dispatch('app/refreshExchange', exchange.id)
     })
   },
   methods: {
@@ -460,7 +460,7 @@ const emitter = new Vue({
 
       this.lastFetchUrl = url
 
-      store.commit('toggleLoading', true)
+      store.commit('app/TOGGLE_LOADING', true)
 
       this.$emit('fetchStart', to - from)
 
@@ -564,7 +564,7 @@ const emitter = new Vue({
 
             this.$emit('fetchEnd', to - from)
 
-            store.commit('toggleLoading', false)
+            store.commit('app/TOGGLE_LOADING', false)
           })
       })
     },

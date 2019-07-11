@@ -20,6 +20,7 @@ function save(store) {
 }
 
 export default {
+  namespaced: true,
   state,
   actions,
   mutations,

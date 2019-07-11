@@ -1,3 +1,5 @@
+import store from '../store'
+
 export const APPLICATION_START_TIME = +new Date()
 export const MASTER_DOMAIN = /aggr.trade$/.test(window.location.hostname)
 export const TOUCH_SUPPORTED = (function() {
@@ -90,8 +92,8 @@ export function formatPrice(price, decimals, sats = true) {
     return +price.toFixed(2)
   }
 
-  if (this.decimalPrecision) {
-    return +price.toFixed(this.decimalPrecision)
+  if (store.state.settings.decimalPrecision) {
+    return +price.toFixed(store.state.settings.decimalPrecision)
   }
 
   const firstDigitIndex = price.toString().match(/[1-9]/)

@@ -53,7 +53,7 @@ export function populateTick(trades) {
 
     if (
       !currentTick.timestamp ||
-      trade.timestamp > currentTick.timestamp + store.state.timeframe
+      trade.timestamp > currentTick.timestamp + store.state.settings.timeframe
     ) {
       newTick(trade.timestamp)
     }
@@ -77,7 +77,7 @@ export function newTick(timestamp) {
   redrawTick()
 
   currentTick.timestamp =
-    Math.floor(timestamp / store.state.timeframe) * store.state.timeframe
+    Math.floor(timestamp / store.state.settings.timeframe) * store.state.settings.timeframe
 
   for (let i = 0; i < activeSeries.length; i++) {
     clearTickSerie(activeSeries[i])

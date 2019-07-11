@@ -1,3 +1,5 @@
+import Vue from 'vue'
+
 export default {
   SET_PAIR(state, value) {
     state.pair = value.toString().toUpperCase()

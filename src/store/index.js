@@ -2,14 +2,14 @@ import Vue from 'vue'
 import Vuex from 'vuex'
 
 import settings from './settings'
-import runtime from './runtime'
+import app from './app'
 
 Vue.use(Vuex)
 
 const store = new Vuex.Store({
   modules: {
-    settings,
-    runtime
+    app,
+    settings
   }
 })
 

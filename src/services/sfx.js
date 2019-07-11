@@ -44,7 +44,7 @@ class Sfx {
 
       if (side === 'buy') {
         if (factor >= 10) {
-          ;[659.26, 830.6, 987.76, 1318.52].forEach((f, i, a) =>
+          [659.26, 830.6, 987.76, 1318.52].forEach((f, i, a) =>
             setTimeout(
               () =>
                 this.play(f, 0.05 + Math.sqrt(factor) / 15, 0.1 + factor * 0.1),
@@ -52,7 +52,7 @@ class Sfx {
             )
           )
         } else if (factor >= 1) {
-          ;[659.26, 830.6].forEach((f, i) =>
+          [659.26, 830.6].forEach((f, i) =>
             setTimeout(
               () =>
                 this.play(f, 0.05 + Math.sqrt(factor) / 10, 0.1 + factor * 0.1),
@@ -68,7 +68,7 @@ class Sfx {
         }
       } else {
         if (factor >= 10) {
-          ;[493.88, 369.99, 293.66, 246.94].forEach((f, i, a) =>
+          [493.88, 369.99, 293.66, 246.94].forEach((f, i, a) =>
             setTimeout(
               () =>
                 this.play(
@@ -80,7 +80,7 @@ class Sfx {
             )
           )
         } else if (factor >= 1) {
-          ;[493.88, 392].forEach((f, i) =>
+          [493.88, 392].forEach((f, i) =>
             setTimeout(
               () =>
                 this.play(f, 0.05 + Math.sqrt(factor) / 10, 0.1 + factor * 0.1),
@@ -96,7 +96,7 @@ class Sfx {
         }
       }
     }, this.timestamp - now)
-    
+
     this.timestamp = Math.max(this.timestamp, now) + (this.queued > 20 ? 40 : 80)
   }
 
@@ -121,7 +121,7 @@ class Sfx {
     length *= 1.1
 
     gain.gain.value =
-      Math.max(0.04, Math.min(2, value)) * store.state.audioVolume
+      Math.max(0.04, Math.min(2, value)) * store.state.settings.audioVolume
 
     gain.gain.setValueAtTime(gain.gain.value, time)
     gain.gain.exponentialRampToValueAtTime(0.001, time + length)
@@ -131,7 +131,7 @@ class Sfx {
   }
 
   liquidation() {
-    ;[329.63, 329.63].forEach((f, i, a) =>
+    [329.63, 329.63].forEach((f, i, a) =>
       setTimeout(() => this.play(f, 0.5, 0.25, 'sine'), i * 80)
     )
   }

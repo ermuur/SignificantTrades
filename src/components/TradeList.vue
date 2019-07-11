@@ -66,7 +66,7 @@ export default {
     }
   },
   computed: {
-    ...mapState([
+    ...mapState('settings', [
       'pair',
       'maxRows',
       'thresholds',

@@ -126,15 +126,15 @@ export default {
   methods: {
     onTrades(trades, stats) {
       // update display
-      this.buyAmount += this.preferQuoteCurrencySize ? stats.buyAmount : buySize
+      this.buyAmount += this.preferQuoteCurrencySize ? stats.buyAmount : stats.buySize
       this.buyCount += stats.buyCount
-      this.sellAmount += this.preferQuoteCurrencySize ? stats.sellAmount : sellSize
+      this.sellAmount += this.preferQuoteCurrencySize ? stats.sellAmount : stats.sellSize
       this.sellCount += stats.sellCount
 
       // update temporary data
-      this.temp.buyAmount += this.preferQuoteCurrencySize ? stats.buyAmount : buySize
+      this.temp.buyAmount += this.preferQuoteCurrencySize ? stats.buyAmount : stats.buySize
       this.temp.buyCount += stats.buyCount
-      this.temp.sellAmount += this.preferQuoteCurrencySize ? stats.sellAmount : sellSize
+      this.temp.sellAmount += this.preferQuoteCurrencySize ? stats.sellAmount : stats.sellSize
       this.temp.sellCount += stats.sellCount
 
       this.hasTemporaryData = true

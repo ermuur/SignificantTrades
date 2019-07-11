@@ -68,17 +68,19 @@ export default {
     }
   },
   computed: {
-    ...mapState([
+    ...mapState('settings', [
       'pair',
-      'actives',
       'showCounters',
       'showStats',
       'showChart',
       'showExchangesBar',
       'decimalPrecision',
       'autoClearTrades',
-      'isLoading',
       'preferQuoteCurrencySize',
+    ]),
+    ...mapState('app', [
+      'actives',
+      'isLoading',
     ]),
   },
   created() {
