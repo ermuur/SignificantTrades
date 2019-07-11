@@ -87,12 +87,14 @@ export default {
     volDelta() {
       return this.data.buyAmount - this.data.sellAmount
     },
-    ...mapState([
+    ...mapState('settings', [
       'statsPeriod',
       'statsGraphs',
       'statsGraphsTimeframe',
       'statsGraphsLength',
-      'preferQuoteCurrencySize',
+      'preferQuoteCurrencySize'
+    ]),
+    ...mapState('app', [
       'actives'
     ]),
   },
