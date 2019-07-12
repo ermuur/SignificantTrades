@@ -631,7 +631,7 @@ class Okex extends Exchange {
     // exp timestamp hong kong time
     let msUntilExpiration =
       +new Date(`${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()} 16:00:00+08:00`) -
-      +new Date()
+      +new Date() + 1000 * 60
 
     console.log('will expire after', msUntilExpiration, 'ms')
 
