@@ -1,49 +1,6 @@
 <template>
   <div id="stats" class="stats">
-    <ul class="stats__items">
-      <li
-        v-tippy
-        title="Number of trades"
-      >
-        <Measurement v-if="statsGraphs" ref="tradesMeasurement" :timeframe="statsGraphsTimeframe" :length="statsGraphsLength" />
-        <div class="stats__label">TRADES</div>
-        <div class="stats__value">
-          {{ $root.formatAmount(totalOrders) }}
-        </div>
-      </li>
-      <li
-        v-tippy
-        title="Average order"
-      >
-        <Measurement v-if="statsGraphs" ref="avgMeasurement" :timeframe="statsGraphsTimeframe" :length="statsGraphsLength" />
-        <div class="stats__label">AVG</div>
-        <div class="stats__value">
-          <span class="icon-currency"></span>
-          {{ $root.formatAmount(totalVolume / totalOrders, 2) }}
-        </div>
-      </li>
-      <li
-        v-tippy
-        title="Volume delta"
-      >
-        <Measurement v-if="statsGraphs" ref="volDeltaMeasurement" :timeframe="statsGraphsTimeframe" :length="statsGraphsLength" />
-        <div class="stats__label">VOL &Delta;</div>
-        <div class="stats__value">
-          <span class="icon-currency"></span>
-          {{ $root.formatAmount(volDelta, 1) }}
-        </div>
-      </li>
-      <li
-        v-tippy
-        title="Order delta"
-      >
-        <Measurement v-if="statsGraphs" ref="countDeltaMeasurement" :timeframe="statsGraphsTimeframe" :length="statsGraphsLength" />
-        <div class="stats__label">TRADES &Delta;</div>
-        <div class="stats__value">
-          {{ $root.formatAmount(countDelta, 1) }}
-        </div>
-      </li>
-    </ul>
+    <div v-for="(value, name) in data" :key="name">{{name}} {{ value }}</div>
   </div>
 </template>
 
@@ -51,42 +8,25 @@
 import { mapState } from 'vuex'
 
 import socket from '../services/socket'
+import Counter from '../utils/counter'
 
-import Measurement from './ui/Measurement.vue'
-
-const stacks = []
+/** @type {Counter[]} */
+const counters = []
+const CUSTOM_COUNTER = {
+  trades: `[stats.buyCount + stats.sellCount]`
+}
 
 export default {
-  components: {
-    Measurement
-  },
   data() {
     return {
-      timestamp: null,
-      periodLabel: null,
-      statsPrecision: 1000,
-      data: {
-        buyAmount: 0,
-        buyCount: 0,
-        sellAmount: 0,
-        sellCount: 0,
-      }
+      data: Object.keys(CUSTOM_COUNTER).reduce((obj, name) => {
+        obj[name] = 0
+        return obj
+      }, {})
     }
   },
 
   computed: {
-    totalOrders() {
-      return this.data.buyCount + this.data.sellCount
-    },
-    totalVolume() {
-      return this.data.buyAmount + this.data.sellAmount
-    },
-    countDelta() {
-      return this.data.buyCount - this.data.sellCount
-    },
-    volDelta() {
-      return this.data.buyAmount - this.data.sellAmount
-    },
     ...mapState('settings', [
       'statsPeriod',
       'statsGraphs',
@@ -99,20 +39,21 @@ export default {
     ]),
   },
   created() {
-    const now = +new Date()
-    window.stacks = stacks;
     this.onStoreMutation = this.$store.subscribe((mutation, state) => {
       switch (mutation.type) {
         case 'reloadExchangeState':
-        case 'SET_STATS_PERIOD':
-        case 'SET_QUOTE_AS_PREFERED_CURRENCY':
-          this.rebuildStats()
+        case 'settings/SET_STATS_PERIOD':
+        case 'settings/SET_QUOTE_AS_PREFERED_CURRENCY':
           break
       }
     })
   },
   mounted() {
-    this.rebuildStats()
+    for (let name in CUSTOM_COUNTER) {
+      counters.push(new Counter([0], (stats, trades) => eval(CUSTOM_COUNTER[name]), false))
+      counters[counters.length - 1].name = name;
+      this.data[name] = 0
+    }
 
     socket.$on('trades.queued', this.onTrades)
     socket.$on('historical', this.onFetch)
@@ -127,145 +68,12 @@ export default {
   },
   methods: {
     onTrades(trades, stats) {
-      // update display
-      this.buyAmount += this.preferQuoteCurrencySize ? stats.buyAmount : stats.buySize
-      this.buyCount += stats.buyCount
-      this.sellAmount += this.preferQuoteCurrencySize ? stats.sellAmount : stats.sellSize
-      this.sellCount += stats.sellCount
-
-      // update temporary data
-      this.temp.buyAmount += this.preferQuoteCurrencySize ? stats.buyAmount : stats.buySize
-      this.temp.buyCount += stats.buyCount
-      this.temp.sellAmount += this.preferQuoteCurrencySize ? stats.sellAmount : stats.sellSize
-      this.temp.sellCount += stats.sellCount
-
-      this.hasTemporaryData = true
+      for (let i = 0; i < counters.length; i++) {
+        counters[i].onTrades(trades, stats)
+        this.$set(this.data, counters[i].name, counters[i].live.join(','))
+      }
     },
     onFetch(trades, from, to) {
-      const now = +new Date()
-
-      if (to > now - this.statsPeriod) {
-        this.rebuildStats()
-      }
-    },
-    rebuildStats() {
-      clearInterval(this.statsRefreshCycleInterval)
-
-      const now = +new Date()
-
-      stacks.splice(0, stacks.length)
-
-      this.hasTemporaryData = false
-      this.temp = Object.keys(this.data).reduce((obj, prop) => {
-        obj[prop] = 0
-
-        return obj
-      }, {})
-
-      // console.log('rebuildStats')
-
-      if (this.statsGraphs) {
-        this.$refs.tradesMeasurement.clear();
-        this.$refs.avgMeasurement.clear();
-        this.$refs.volDeltaMeasurement.clear();
-        this.$refs.countDeltaMeasurement.clear();
-      }
-
-      for (let i = socket.trades.length - 1; i >= 0; i--) {
-        if (socket.trades[i].timestamp < now - this.statsPeriod) {
-          break;
-        }
-
-        const isBuy = socket.trades[i].side === 'buy'
-        const amount = socket.trades[i].size * (this.preferQuoteCurrencySize ? socket.trades[i].price : 1)
-
-        if (stacks.length && socket.trades[i].timestamp > stacks[stacks.length - 1].timestamp) {
-          // console.log('update stack (stacks.length - 1) at timestamp, index', (stacks.length - 1), stacks[stacks.length - 1].timestamp, new Date(stacks[stacks.length - 1].timestamp).toLocaleTimeString())
-          stacks[stacks.length - 1][isBuy ? 'buyAmount' : 'sellAmount'] += amount
-          stacks[stacks.length - 1][isBuy ? 'buyCount' : 'sellCount'] += socket.trades[i].count || 1
-        } else {
-          // console.log(`create stack with ${isBuy ? socket.trades[i].count || 1 : 0} buys + ${!isBuy ? socket.trades[i].count || 1 : 0} sells, will expire at ${new Date(now - this.statsPrecision * (stacks.length + 1) + this.statsPeriod).toLocaleTimeString()}`)
-          stacks.push({
-            timestamp: now - this.statsPrecision * (stacks.length + 1), // stack "from" date
-            buyAmount: isBuy ? amount : 0,
-            buyCount: isBuy ? socket.trades[i].count || 1 : 0,
-            sellAmount: !isBuy ? amount : 0,
-            sellCount: !isBuy ? socket.trades[i].count || 1 : 0
-          })
-        }
-      }
-
-      this.updateStats(now)
-
-      this.statsRefreshCycleInterval = window.setInterval(
-        this.updateStats.bind(this),
-        500
-      )
-    },
-    updateStats(timestamp = null) {
-      const now = timestamp || +new Date()
-
-      let buyAmount = 0
-      let sellAmount = 0
-      let buyCount = 0
-      let sellCount = 0
-
-      let i = stacks.length;
-
-      if (this.hasTemporaryData) {
-        // console.log('has temporary data')
-        if (!i || stacks[0].timestamp + this.statsPrecision < now) {
-          // console.log(!i ? 'no stack => create first' : `latest stack too late, need new (${new Date(stacks[0].timestamp + this.statsPrecision).toLocaleTimeString()} < ${new Date(now).toLocaleTimeString()})`, `this stack will expire at ${new Date(now + this.statsPeriod).toLocaleTimeString()}`)
-          stacks.unshift({
-            timestamp: now,
-            buyAmount: this.temp.buyAmount,
-            buyCount: this.temp.buyCount,
-            sellAmount: this.temp.sellAmount,
-            sellCount: this.temp.sellCount
-          })
-        } else {
-          // console.log('update latest stack')
-          stacks[0].buyAmount += this.temp.buyAmount
-          stacks[0].buyCount += this.temp.buyCount
-          stacks[0].sellAmount += this.temp.sellAmount
-          stacks[0].sellCount += this.temp.sellCount
-        }
-
-        this.temp.buyAmount = 0
-        this.temp.buyCount = 0
-        this.temp.sellAmount = 0
-        this.temp.sellCount = 0
-
-        this.hasTemporaryData = false
-      }
-
-      while (i--) {
-        if (stacks[i].timestamp + this.statsPeriod < now) {
-          // console.log('stack with index' + i + 'expired', `(expiration: ${new Date(stacks[i].timestamp + this.statsPeriod).toLocaleTimeString()}) <  now (${new Date(now - this.statsPeriod).toLocaleTimeString()})`)
-          stacks.splice(i, 1)
-        } else {
-          buyAmount += stacks[i].buyAmount
-          sellAmount += stacks[i].sellAmount
-          buyCount += stacks[i].buyCount
-          sellCount += stacks[i].sellCount
-        }
-      }
-
-      if (i !== stacks.length) {
-        // console.log('stats count ===', stacks.length)
-      }
-
-      this.data.buyAmount = buyAmount
-      this.data.sellAmount = sellAmount
-      this.data.buyCount = buyCount
-      this.data.sellCount = sellCount
-
-      if (this.statsGraphs) {
-        this.$refs.tradesMeasurement.append(this.totalOrders);
-        this.$refs.avgMeasurement.append(this.totalOrders ? this.totalVolume / this.totalOrders : 0);
-        this.$refs.volDeltaMeasurement.append(this.volDelta);
-        this.$refs.countDeltaMeasurement.append(this.countDelta);
-      }
     },
   },
 }

@@ -23,7 +23,7 @@
       <button
         type="button"
         :class="{ active: isSnaped }"
-        @click="$store.commit('toggleSnap', !isSnaped)"
+        @click="$store.commit('settings/toggleSnap', !isSnaped)"
         :title="
           isSnaped
             ? 'Disable auto snap'
@@ -36,7 +36,7 @@
       <button
         type="button"
         :class="{ active: useAudio }"
-        @click="$store.commit('TOGGLE_AUDIO', !useAudio)"
+        @click="$store.commit('settings/TOGGLE_AUDIO', !useAudio)"
       >
         <span class="icon-volume-muted"></span>
       </button>
@@ -44,7 +44,7 @@
         <span class="icon-cog"></span>
       </button>
     </div>
-    <div class="header__search">
+    <div v-if="searchOpen" class="header__search">
       <Autocomplete :load="search"/>
     </div>
   </header>
@@ -71,10 +71,11 @@ export default {
       showTimeframeDropdown: false,
       timeframeLabel: '15m',
       timeframes: {},
+      searchOpen: false
     }
   },
   computed: {
-    ...mapState([
+    ...mapState('settings', [
       'pair',
       'useAudio',
       'showChart',
@@ -128,7 +129,7 @@ export default {
       this.updateTimeframeLabel(timeframe)
 
       setTimeout(() => {
-        this.$store.commit('SET_TIMEFRAME', timeframe)
+        this.$store.commit('settings/SET_TIMEFRAME', timeframe)
       }, 50)
     },
     updateTimeframeLabel(timeframe) {

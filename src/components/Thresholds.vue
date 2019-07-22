@@ -18,7 +18,7 @@
             placeholder="Amount*"
             :value="thresholds[index].amount"
             @change="
-              $store.commit('SET_THRESHOLD_AMOUNT', {
+              $store.commit('settings/SET_THRESHOLD_AMOUNT', {
                 index: index,
                 value: $event.target.value,
               })
@@ -32,7 +32,7 @@
             placeholder="Keyword"
             :value="thresholds[index].gif"
             @change="
-              $store.commit('SET_THRESHOLD_GIF', {
+              $store.commit('settings/SET_THRESHOLD_GIF', {
                 index: index,
                 value: $event.target.value,
               })
@@ -93,7 +93,7 @@
           <editable
             :content="thresholds[selectedIndex].amount"
             @output="
-              $store.commit('SET_THRESHOLD_AMOUNT', {
+              $store.commit('settings/SET_THRESHOLD_AMOUNT', {
                 index: selectedIndex,
                 value: $event,
               })
@@ -112,7 +112,7 @@
             class="form-control"
             :value="thresholds[selectedIndex].gif"
             @change="
-              $store.commit('SET_THRESHOLD_GIF', {
+              $store.commit('settings/SET_THRESHOLD_GIF', {
                 index: selectedIndex,
                 value: $event.target.value,
               })
@@ -134,7 +134,7 @@
                 :value="thresholds[selectedIndex].buyColor"
                 :style="{ backgroundColor: thresholds[selectedIndex].buyColor }"
                 @change="
-                  $store.commit('SET_THRESHOLD_COLOR', {
+                  $store.commit('settings/SET_THRESHOLD_COLOR', {
                     index: selectedIndex,
                     side: 'buyColor',
                     value: $event.target.value,
@@ -156,7 +156,7 @@
                   backgroundColor: thresholds[selectedIndex].sellColor,
                 }"
                 @change="
-                  $store.commit('SET_THRESHOLD_COLOR', {
+                  $store.commit('settings/SET_THRESHOLD_COLOR', {
                     index: selectedIndex,
                     side: 'sellColor',
                     value: $event.target.value,
@@ -176,6 +176,7 @@
 import { mapState } from 'vuex'
 
 import { Chrome } from 'vue-color'
+import { formatPrice, formatAmount } from '../utils/helpers'
 
 export default {
   components: {
@@ -196,7 +197,7 @@ export default {
   },
 
   computed: {
-    ...mapState([
+    ...mapState('settings', [
       'thresholds',
       'showThresholdsAsTable',
       'preferQuoteCurrencySize',
@@ -206,16 +207,16 @@ export default {
   created() {
     this.onStoreMutation = this.$store.subscribe((mutation, state) => {
       switch (mutation.type) {
-        case 'TOGGLE_SETTINGS_PANEL':
-        case 'TOGGLE_THRESHOLDS_TABLE':
+        case 'settings/TOGGLE_SETTINGS_PANEL':
+        case 'settings/TOGGLE_THRESHOLDS_TABLE':
           if (this.picking) {
             this.closePicker(event)
           }
 
           if (
-            (mutation.type === 'TOGGLE_SETTINGS_PANEL' &&
+            (mutation.type === 'settings/TOGGLE_SETTINGS_PANEL' &&
               mutation.payload === 'thresholds') ||
-            (mutation.type === 'TOGGLE_THRESHOLDS_TABLE' &&
+            (mutation.type === 'settings/TOGGLE_THRESHOLDS_TABLE' &&
               mutation.payload === false)
           ) {
             this.rendering = true
@@ -226,11 +227,11 @@ export default {
             }, 100)
           }
           break
-        case 'SET_THRESHOLD_AMOUNT':
+        case 'settings/SET_THRESHOLD_AMOUNT':
           this.reorderThresholds()
           this.refreshHandlers()
           break
-        case 'SET_THRESHOLD_COLOR':
+        case 'settings/SET_THRESHOLD_COLOR':
           this.refreshGradients()
           break
       }
@@ -366,7 +367,7 @@ export default {
 
       this.refreshCaretPosition()
 
-      this.thresholds[this.selectedIndex].amount = this.$root.formatPrice(
+      this.thresholds[this.selectedIndex].amount = formatPrice(
         amount
       )
     },
@@ -374,7 +375,7 @@ export default {
     endDrag(event) {
       if (this.selectedElement) {
         if (this.dragging) {
-          this.$store.commit('SET_THRESHOLD_AMOUNT', {
+          this.$store.commit('settings/SET_THRESHOLD_AMOUNT', {
             index: this.selectedIndex,
             value: this.thresholds[this.selectedIndex].amount,
           })
@@ -508,7 +509,7 @@ export default {
       }
 
       if (!this.thresholds[index][side]) {
-        this.$store.commit('SET_THRESHOLD_COLOR', {
+        this.$store.commit('settings/SET_THRESHOLD_COLOR', {
           index: index,
           side: side,
           value: '#ffffff',
@@ -569,7 +570,7 @@ export default {
         return
       }
 
-      this.$store.commit('SET_THRESHOLD_COLOR', {
+      this.$store.commit('settings/SET_THRESHOLD_COLOR', {
         index: this.picking.index,
         side: this.picking.side,
         value: `rgba(${color.rgba.r}, ${color.rgba.g}, ${color.rgba.b}, ${

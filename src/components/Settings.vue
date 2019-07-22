@@ -34,7 +34,7 @@
             placeholder="BTCUSD"
             class="form-control"
             :value="pair"
-            @change="$store.commit('SET_PAIR', $event.target.value)"
+            @change="$store.commit('settings/SET_PAIR', $event.target.value)"
           />
           <small class="help-text mt8" v-if="showPairSubdomainHelp"
             ><i class="icon-info-circle"></i> Consider using
@@ -56,7 +56,7 @@
                 class="form-control"
                 :checked="preferQuoteCurrencySize"
                 @change="
-                  $store.commit('SET_QUOTE_AS_PREFERED_CURRENCY', $event.target.checked)
+                  $store.commit('settings/SET_QUOTE_AS_PREFERED_CURRENCY', $event.target.checked)
                 "
               />
               <div on="quote" off="base"></div>
@@ -66,7 +66,7 @@
         </div>
         <div
           class="settings__title"
-          @click="$store.commit('TOGGLE_SETTINGS_PANEL', 'list')"
+          @click="$store.commit('settings/TOGGLE_SETTINGS_PANEL', 'list')"
           :class="{ closed: settings.indexOf('list') > -1 }"
         >
           Trades list <i class="icon-up"></i>
@@ -89,7 +89,7 @@
                 step="1"
                 class="form-control"
                 :value="maxRows"
-                @change="$store.commit('SET_MAX_ROWS', $event.target.value)"
+                @change="$store.commit('settings/SET_MAX_ROWS', $event.target.value)"
               />
             </div>
 
@@ -113,7 +113,7 @@
         </div>
         <div
           class="settings__title"
-          @click="$store.commit('TOGGLE_SETTINGS_PANEL', 'thresholds')"
+          @click="$store.commit('settings/TOGGLE_SETTINGS_PANEL', 'thresholds')"
           :class="{ closed: settings.indexOf('thresholds') > -1 }"
         >
           Thresholds ({{ thresholds.length }}) <i class="icon-up"></i>
@@ -125,7 +125,7 @@
             v-tippy
             title="Switch thresholds display"
             @click="
-              $store.commit('TOGGLE_THRESHOLDS_TABLE', !showThresholdsAsTable)
+              $store.commit('settings/TOGGLE_THRESHOLDS_TABLE', !showThresholdsAsTable)
             "
             >{{ showThresholdsAsTable ? 'slider' : 'table' }}</a
           >
@@ -133,7 +133,7 @@
         </div>
         <div
           class="settings__title"
-          @click="$store.commit('TOGGLE_SETTINGS_PANEL', 'audio')"
+          @click="$store.commit('settings/TOGGLE_SETTINGS_PANEL', 'audio')"
           :class="{ closed: settings.indexOf('audio') > -1 }"
         >
           Audio <i class="icon-up"></i>
@@ -152,7 +152,7 @@
                 type="checkbox"
                 class="form-control"
                 :checked="useAudio"
-                @change="$store.commit('TOGGLE_AUDIO', $event.target.checked)"
+                @change="$store.commit('settings/TOGGLE_AUDIO', $event.target.checked)"
               />
               <div></div>
             </label>
@@ -184,13 +184,13 @@
               max="10"
               step=".1"
               :value="audioVolume"
-              @change="$store.commit('SET_AUDIO_VOLUME', $event.target.value)"
+              @change="$store.commit('settings/SET_AUDIO_VOLUME', $event.target.value)"
             />
           </div>
         </div>
         <div
           class="settings__title"
-          @click="$store.commit('TOGGLE_SETTINGS_PANEL', 'stats')"
+          @click="$store.commit('settings/TOGGLE_SETTINGS_PANEL', 'stats')"
           :class="{ closed: settings.indexOf('stats') > -1 }"
         >
           Stats <i class="icon-up"></i>
@@ -210,7 +210,7 @@
                   type="checkbox"
                   class="form-control"
                   :checked="showStats"
-                  @change="$store.commit('TOGGLE_STATS', $event.target.checked)"
+                  @change="$store.commit('settings/TOGGLE_STATS', $event.target.checked)"
                 />
                 <div></div>
               </label>
@@ -222,7 +222,7 @@
                 type="string"
                 class="form-control"
                 :value="statsPeriodStringified"
-                @change="$store.commit('SET_STATS_PERIOD', $event.target.value)"
+                @change="$store.commit('settings/SET_STATS_PERIOD', $event.target.value)"
                 placeholder="Enter a timeframe (ie: 1m)"
               />
             </div>
@@ -236,7 +236,7 @@
                   type="checkbox"
                   class="form-control"
                   :checked="statsGraphs"
-                  @change="$store.commit('TOGGLE_STATS_GRAPHS', $event.target.checked)"
+                  @change="$store.commit('settings/TOGGLE_STATS_GRAPHS', $event.target.checked)"
                 />
                 <div>
                   <i class="icon-line-chart"></i>
@@ -258,7 +258,7 @@
                 placeholder="time in ms"
                 class="form-control"
                 :value="statsGraphsTimeframe"
-                @change="$store.commit('TOGGLE_STATS_TIMEFRAME', $event.target.value)"
+                @change="$store.commit('settings/TOGGLE_STATS_TIMEFRAME', $event.target.value)"
               />
             </div>
             <div class="form-group">
@@ -274,14 +274,14 @@
                 placeholder="nb of ticks"
                 class="form-control"
                 :value="statsGraphsLength"
-                @change="$store.commit('TOGGLE_STATS_LENGTH', $event.target.value)"
+                @change="$store.commit('settings/TOGGLE_STATS_LENGTH', $event.target.value)"
               />
             </div>
           </div>-->
         </div>
         <div
           class="settings__title"
-          @click="$store.commit('TOGGLE_SETTINGS_PANEL', 'counters')"
+          @click="$store.commit('settings/TOGGLE_SETTINGS_PANEL', 'counters')"
           :class="{ closed: settings.indexOf('counters') > -1 }"
         >
           Counter <i class="icon-up"></i>
@@ -300,7 +300,7 @@
                 type="checkbox"
                 class="form-control"
                 :checked="showCounters"
-                @change="$store.commit('TOGGLE_COUNTERS', $event.target.checked)"
+                @change="$store.commit('settings/TOGGLE_COUNTERS', $event.target.checked)"
               />
               <div></div>
             </label>
@@ -342,7 +342,7 @@
         </div>
         <div
           class="settings__title"
-          @click="$store.commit('TOGGLE_SETTINGS_PANEL', 'chart')"
+          @click="$store.commit('settings/TOGGLE_SETTINGS_PANEL', 'chart')"
           :class="{ closed: settings.indexOf('chart') > -1 }"
         >
           Chart <i class="icon-up"></i>
@@ -361,7 +361,7 @@
                 type="checkbox"
                 class="form-control"
                 :checked="showChart"
-                @change="$store.commit('TOGGLE_CHART', $event.target.checked)"
+                @change="$store.commit('settings/TOGGLE_CHART', $event.target.checked)"
               />
               <div></div>
             </label>
@@ -378,7 +378,7 @@
                   class="form-control"
                   :checked="chartGridlines"
                   @change="
-                    $store.commit('TOGGLE_CHART_GRID', $event.target.checked)
+                    $store.commit('settings/TOGGLE_CHART_GRID', $event.target.checked)
                   "
                 />
                 <div></div>
@@ -386,7 +386,7 @@
                   >Horizontal ticks (every
                   <editable
                     :content="chartGridlinesGap"
-                    @output="$store.commit('SET_CHART_GRID_GAP', $event)"
+                    @output="$store.commit('settings/SET_CHART_GRID_GAP', $event)"
                   ></editable>
                   px)</span
                 >
@@ -415,7 +415,7 @@
                   <editable
                     :content="(chartPadding * 100).toFixed(2)"
                     @output="
-                      $store.commit('SET_CHART_PADDING', ($event || 0) / 100)
+                      $store.commit('settings/SET_CHART_PADDING', ($event || 0) / 100)
                     "
                   ></editable>
                   % margin on the right</span
@@ -433,7 +433,7 @@
                   class="form-control"
                   :checked="chartCandlestick"
                   @change="
-                    $store.commit('TOGGLE_CANDLESTICK', $event.target.checked)
+                    $store.commit('settings/TOGGLE_CANDLESTICK', $event.target.checked)
                   "
                 />
                 <div></div>
@@ -451,7 +451,7 @@
                   class="form-control"
                   :checked="chartLiquidations"
                   @change="
-                    $store.commit('TOGGLE_LIQUIDATIONS', $event.target.checked)
+                    $store.commit('settings/TOGGLE_LIQUIDATIONS', $event.target.checked)
                   "
                 />
                 <div></div>
@@ -468,7 +468,7 @@
                   type="checkbox"
                   class="form-control"
                   :checked="chartVolume"
-                  @change="$store.commit('TOGGLE_VOLUME_SERIE', $event.target.checked)"
+                  @change="$store.commit('settings/TOGGLE_VOLUME_SERIE', $event.target.checked)"
                 />
                 <div></div>
                 <span @click.stop.prevent>Volume</span>
@@ -478,7 +478,7 @@
                   only sum trades above <i class="icon-quote"></i>
                   <editable
                     :content="chartVolumeThreshold"
-                    @output="$store.commit('SET_VOLUME_SERIE_THRESHOLD', $event)"
+                    @output="$store.commit('settings/SET_VOLUME_SERIE_THRESHOLD', $event)"
                   ></editable>
                 </div>
                 <div>
@@ -490,7 +490,7 @@
                     step=".01"
                     :value="chartVolumeOpacity"
                     @change="
-                      $store.commit('SET_VOLUME_BAR_OPACITY', $event.target.value)
+                      $store.commit('settings/SET_VOLUME_BAR_OPACITY', $event.target.value)
                     "
                   />
                 </div>
@@ -506,7 +506,7 @@
                   type="checkbox"
                   class="form-control"
                   :checked="chartSma"
-                  @change="$store.commit('TOGGLE_PRICE_SMA', $event.target.checked)"
+                  @change="$store.commit('settings/TOGGLE_PRICE_SMA', $event.target.checked)"
                 />
                 <div></div>
                 <span @click.stop.prevent>Price SMA</span>
@@ -515,7 +515,7 @@
                 period
                 <editable
                   :content="chartSmaLength"
-                  @output="$store.commit('SET_PRICE_SMA_PERIOD', $event)"
+                  @output="$store.commit('settings/SET_PRICE_SMA_PERIOD', $event)"
                 ></editable>
               </div>
             </div>
@@ -530,7 +530,7 @@
                   class="form-control"
                   :checked="chartVolumeAverage"
                   @change="
-                    $store.commit('TOGGLE_VOLUME_AVERAGE', $event.target.checked)
+                    $store.commit('settings/TOGGLE_VOLUME_AVERAGE', $event.target.checked)
                   "
                 />
                 <div></div>
@@ -543,7 +543,7 @@
                 period
                 <editable
                   :content="chartVolumeAverageLength"
-                  @output="$store.commit('SET_VOLUME_AVERAGE_PERIOD', $event)"
+                  @output="$store.commit('settings/SET_VOLUME_AVERAGE_PERIOD', $event)"
                 ></editable>
               </div>
             </div>
@@ -559,7 +559,7 @@
                   :checked="showExchangesBar"
                   @change="
                     $store.commit(
-                      'TOGGLE_EXCHANGES_BAR',
+                      'settings/TOGGLE_EXCHANGES_BAR',
                       $event.target.checked
                     )
                   "
@@ -580,7 +580,7 @@
                   :checked="autoClearTrades"
                   @change="
                     $store.commit(
-                      'TOGGLE_AUTO_CLEAR',
+                      'settings/TOGGLE_AUTO_CLEAR',
                       $event.target.checked
                     )
                   "
@@ -593,7 +593,7 @@
         </div>
         <div
           class="settings__title"
-          @click="$store.commit('TOGGLE_SETTINGS_PANEL', 'exchanges')"
+          @click="$store.commit('settings/TOGGLE_SETTINGS_PANEL', 'exchanges')"
           :class="{ closed: settings.indexOf('exchanges') > -1 }"
         >
           Exchanges <i class="icon-up"></i>
@@ -612,7 +612,7 @@
         </div>
         <div
           class="settings__title"
-          @click="$store.commit('TOGGLE_SETTINGS_PANEL', 'other')"
+          @click="$store.commit('settings/TOGGLE_SETTINGS_PANEL', 'other')"
           :class="{ closed: settings.indexOf('other') > -1 }"
         >
           Other <i class="icon-up"></i>
@@ -626,7 +626,7 @@
                 type="checkbox"
                 class="form-control"
                 :checked="!!decimalPrecision"
-                @change="$store.commit('SET_DECIMAL_PRECISION', decimalPrecision ? null : 2)"
+                @change="$store.commit('settings/SET_DECIMAL_PRECISION', decimalPrecision ? null : 2)"
               />
               <div></div>
               <span @click.stop.prevent="$event.target.children[0].focus()">
@@ -634,7 +634,7 @@
                 <editable
                   placeholder="auto"
                   :content="decimalPrecision"
-                  @output="$store.commit('SET_DECIMAL_PRECISION', $event)"
+                  @output="$store.commit('settings/SET_DECIMAL_PRECISION', $event)"
                 ></editable>
                 decimal(s)
               </span>
@@ -648,7 +648,7 @@
                 type="checkbox"
                 class="form-control"
                 :checked="!!aggregationLag"
-                @change="$store.commit('SET_AGGREGATION_LAG', aggregationLag ? null : 1000)"
+                @change="$store.commit('settings/SET_AGGREGATION_LAG', aggregationLag ? null : 1000)"
               />
               <div></div>
               <span @click.stop.prevent="$event.target.children[0].focus()">
@@ -656,7 +656,7 @@
                 <editable
                   placeholder="no lag"
                   :content="aggregationLag"
-                  @output="$store.commit('SET_AGGREGATION_LAG', $event)"
+                  @output="$store.commit('settings/SET_AGGREGATION_LAG', $event)"
                 ></editable>
                 ms
               </span>
@@ -670,7 +670,7 @@
                 type="checkbox"
                 class="form-control"
                 :checked="liquidationsOnlyList"
-                @change="$store.commit('TOGGLE_LIQUIDATIONS_ONLY', $event.target.checked)"
+                @change="$store.commit('settings/TOGGLE_LIQUIDATIONS_ONLY', $event.target.checked)"
               />
               <div></div>
               <span><strong>ONLY</strong> show liquidations</span>
@@ -738,7 +738,10 @@ export default {
     }
   },
   computed: {
-    ...mapState([
+    ...mapState('app', [
+      'actives',
+    ]),
+    ...mapState('settings', [
       'pair',
       'maxRows',
       'decimalPrecision',
@@ -757,7 +760,6 @@ export default {
       'hideIncompleteCounter',
       'countersSteps',
       'showChart',
-      'actives',
       'thresholds',
       'showThresholdsAsTable',
       'useAudio',
@@ -844,7 +846,7 @@ export default {
         return
       }
 
-      this.$store.commit('REPLACE_COUNTERS', counters)
+      this.$store.commit('settings/REPLACE_COUNTERS', counters)
 
       this.stringifyCounters()
       this.stringifyStatsPeriod()

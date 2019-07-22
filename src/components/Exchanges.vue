@@ -9,7 +9,7 @@
       v-for="(id, index) in list"
       :key="index"
       :class="'-' + id + ' -' + status[id].status"
-      @click="$store.commit('TOGGLE_EXCHANGE_VISIBILITY', id)"
+      @click="$store.commit('settings/TOGGLE_EXCHANGE_VISIBILITY', id)"
     >
       <div
         class="exchange__price"
@@ -25,6 +25,7 @@
 import { mapState } from 'vuex'
 
 import socket from '../services/socket'
+import { formatPrice, formatAmount } from '../utils/helpers'
 
 const storedPrices = {}
 

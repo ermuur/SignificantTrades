@@ -60,9 +60,11 @@ export default {
     }
   },
   computed: {
-    ...mapState([
-      'pair',
+    ...mapState('app', [
       'actives',
+    ]),
+    ...mapState('settings', [
+      'pair',
       'thresholds',
       'countersSteps',
       'counterPrecision',
@@ -87,11 +89,11 @@ export default {
 
     this.onStoreMutation = this.$store.subscribe((mutation, state) => {
       switch (mutation.type) {
-        case 'SET_TIMEFRAME':
-        case 'SET_COUNTER_VALUE':
-        case 'TOGGLE_CUMULATIVE_COUNTERS':
-        case 'REPLACE_COUNTERS':
-        case 'reloadExchangeState':
+        case 'settings/SET_TIMEFRAME':
+        case 'settings/SET_COUNTER_VALUE':
+        case 'settings/TOGGLE_CUMULATIVE_COUNTERS':
+        case 'settings/REPLACE_COUNTERS':
+        case 'settings/reloadExchangeState':
           this.rebuildCounters()
           break
       }
@@ -111,34 +113,6 @@ export default {
     this.onStoreMutation()
   },
   methods: {
-    /*highlightSide(trades) {
-      const volume = [0, 0]
-
-      for (let i = 0; i < trades.length; i++) {
-        volume[+trades[i][4]] += trades[i][3] * trades[i][2]
-      }
-
-      const side = volume[1] > volume[0] ? 1 : 0
-
-      const strength =
-        (this.strength[side] + volume[side]) / (this.thresholds[0].amount * 0.1)
-
-      const element = this.$refs.countersList.children[0].querySelector(
-        '.counter__' + (side ? 'up' : 'down')
-      ).children[0]
-
-      element.style.background = `linear-gradient(to ${
-        side ? 'right' : 'left'
-      }, rgba(255, 255, 255, 0), rgba(255, 255, 255, ${(strength * 0.8).toFixed(
-        2
-      )}))`
-
-      element.classList.remove('-highlight')
-      void element.offsetWidth
-      element.classList.add('-highlight')
-
-      this.strength[side] = (this.strength[side] + volume[side]) * 0.75
-    },*/
     appendTrades(trades, stats) {
       const upVolume = this.preferQuoteCurrencySize ? stats.sellAmount : stats.sellSize
       const downVolume = this.preferQuoteCurrencySize ? stats.sellAmount : stats.sellSize
@@ -317,7 +291,7 @@ export default {
     },
     updateCounterStep(index, value) {
       if (!value) {
-        return this.$store.commit('SET_COUNTER_VALUE', {
+        return this.$store.commit('settings/SET_COUNTER_VALUE', {
           index: index,
           value: null,
         })
@@ -337,7 +311,7 @@ export default {
         milliseconds *= 1000 * 60
       }
 
-      return this.$store.commit('SET_COUNTER_VALUE', {
+      return this.$store.commit('settings/SET_COUNTER_VALUE', {
         index: index,
         value: milliseconds,
       })
@@ -382,12 +356,12 @@ export default {
     },
     deleteCounter(index) {
       if (this.countersSteps.length === 1) {
-        this.$store.commit('TOGGLE_COUNTERS', false)
+        this.$store.commit('settings/TOGGLE_COUNTERS', false)
 
         return
       }
 
-      this.$store.commit('SET_COUNTER_VALUE', { index: index, value: null })
+      this.$store.commit('settings/SET_COUNTER_VALUE', { index: index, value: null })
     },
     getTicksTrades() {
       return socket.ticks

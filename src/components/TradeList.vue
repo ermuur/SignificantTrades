@@ -89,21 +89,21 @@ export default {
 
     this.onStoreMutation = this.$store.subscribe((mutation, state) => {
       switch (mutation.type) {
-        case 'TOGGLE_AUDIO':
+        case 'settings/TOGGLE_AUDIO':
           if (mutation.payload) {
             this.sfx = new Sfx()
           } else {
             this.sfx && this.sfx.disconnect() && delete this.sfx
           }
           break
-        case 'SET_THRESHOLD_GIF':
+        case 'settings/SET_THRESHOLD_GIF':
           this.fetchGifByKeyword(
             mutation.payload.value,
             mutation.payload.isDeleted
           )
           break
-        case 'SET_THRESHOLD_COLOR':
-        case 'SET_THRESHOLD_AMOUNT':
+        case 'settings/SET_THRESHOLD_COLOR':
+        case 'settings/SET_THRESHOLD_AMOUNT':
           this.retrieveColorSteps()
           this.trades.splice(0, this.trades.length)
 

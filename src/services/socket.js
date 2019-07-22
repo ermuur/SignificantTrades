@@ -129,6 +129,17 @@ const emitter = new Vue({
 
       store.dispatch('app/refreshExchange', exchange.id)
     })
+
+    if (module.hot) {
+      module.hot.dispose(() => {
+        for (let i = 0; i < this.exchanges.length; i++) {
+          this.exchanges[i].disconnect();
+        }
+        
+        clearTimeout(this._connectExchangesTimeout);
+        clearInterval(this._processQueueInterval);
+      })
+    }
   },
   methods: {
     initialize() {
@@ -153,9 +164,9 @@ const emitter = new Vue({
         console.info(`[sockets] PROXY_URL = ${this.PROXY_URL}`)
       }
 
-      setTimeout(this.connectExchanges.bind(this))
+      this._connectExchangesTimeout = setTimeout(this.connectExchanges.bind(this))
 
-      setInterval(this.processQueue.bind(this), 500)
+      this._processQueueInterval = setInterval(this.processQueue.bind(this), 500)
     },
     connectExchanges(pair = null) {
       this.disconnectExchanges()
@@ -310,7 +321,6 @@ const emitter = new Vue({
       const output = this.compressTrades(this.queue)
 
       this.trades = this.trades.concat(output)
-
       const stats = {
         buyCount: 0,
         buySize: 0,
@@ -376,6 +386,8 @@ const emitter = new Vue({
       for (let i = 0; i < groupIds.length; i++) {
         output[groups[groupIds[i]]].price = sums[groupIds[i]] / output[groups[groupIds[i]]].size
       }
+
+      console.log('compress', trades.length, 'into', output.length);
 
       return output
     },

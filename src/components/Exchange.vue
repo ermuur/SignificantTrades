@@ -28,7 +28,7 @@
         <small
           class="settings-exchange__price"
           v-if="exchange.price"
-          v-html="formatPrice(exchange.price)"
+          v-html="$root.formatPrice(exchange.price)"
         ></small>
       </div>
       <div class="settings-exchange__controls">
@@ -37,7 +37,7 @@
           v-tippy
           :title="exchange.hidden ? 'Show' : 'Hide (from everything)'"
           @click.stop.prevent="
-            $store.commit('TOGGLE_EXCHANGE_VISIBILITY', exchange.id)
+            $store.commit('settings/TOGGLE_EXCHANGE_VISIBILITY', exchange.id)
           "
         >
           <i class="icon-eye"></i>
@@ -64,13 +64,13 @@
           :max="2"
           :value="exchanges[exchange.id].threshold"
           @reset="
-            $store.commit('SET_EXCHANGE_THRESHOLD', {
+            $store.commit('settings/SET_EXCHANGE_THRESHOLD', {
               exchange: exchange.id,
               threshold: 1,
             })
           "
           @output="
-            $store.commit('SET_EXCHANGE_THRESHOLD', {
+            $store.commit('settings/SET_EXCHANGE_THRESHOLD', {
               exchange: exchange.id,
               threshold: $event,
             })
@@ -87,7 +87,7 @@
             type="checkbox"
             class="form-control"
             :checked="settings.ohlc !== false"
-            @change="$store.commit('TOGGLE_EXCHANGE_CHART', exchange.id)"
+            @change="$store.commit('settings/TOGGLE_EXCHANGE_CHART', exchange.id)"
           />
           <div></div>
           <span>Include in OHLC</span>
@@ -115,9 +115,9 @@ export default {
   },
   props: ['exchange'],
   computed: {
-    ...mapState(['pair', 'exchanges']),
+    ...mapState('settings', ['pair', 'exchanges']),
     settings() {
-      return this.$store.state.exchanges[this.exchange.id]
+      return this.$store.state.settings.exchanges[this.exchange.id]
     },
   },
   methods: {
@@ -125,11 +125,11 @@ export default {
       if (!this.settings.disabled) {
         this.exchange.disconnect()
 
-        this.$store.commit('DISABLE_EXCHANGE', this.exchange.id)
+        this.$store.commit('settings/DISABLE_EXCHANGE', this.exchange.id)
       } else {
         this.exchange.connect(this.pair)
 
-        this.$store.commit('ENABLE_EXCHANGE', this.exchange.id)
+        this.$store.commit('settings/ENABLE_EXCHANGE', this.exchange.id)
       }
     },
     refreshProducts(exchange) {

@@ -93,10 +93,10 @@ export default {
 
     this.onStoreMutation = this.$store.subscribe((mutation, state) => {
       switch (mutation.type) {
-        case 'TOGGLE_AUTO_CLEAR':
+        case 'settings/TOGGLE_AUTO_CLEAR':
           this.TOGGLE_AUTO_CLEAR(mutation.payload)
           break
-        case 'SET_PAIR':
+        case 'settings/SET_PAIR':
           socket.connectExchanges(mutation.payload)
           break
       }

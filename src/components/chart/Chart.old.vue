@@ -29,7 +29,7 @@
         <div class="chart-controls__right">
           <div
             class="chart__scale-mode"
-            @click="$store.commit('TOGGLE_CHART_AUTO_SCALE', !chartAutoScale)"
+            @click="$store.commit('settings/TOGGLE_CHART_AUTO_SCALE', !chartAutoScale)"
             v-tippy
             :title="chartAutoScale ? 'Unlock price axis' : 'Lock price axis'"
           >
@@ -137,13 +137,13 @@ export default {
 
     this.onStoreMutation = this.$store.subscribe((mutation, state) => {
       switch (mutation.type) {
-        case 'setPair':
+        case 'settings/SET_PAIR':
           this.chart.series[0].update(
             { name: mutation.payload.toUpperCase() },
             false
           )
           break
-        case 'SET_TIMEFRAME':
+        case 'settings/SET_TIMEFRAME':
           this.setTimeframe(
             mutation.payload,
             true,
@@ -151,35 +151,35 @@ export default {
           )
           this._timeframe = parseInt(this.timeframe)
           break
-        case 'toggleSnap':
+        case 'settings/toggleSnap':
           mutation.payload && this.snapRight(true)
           break
-        case 'TOGGLE_EXCHANGES_BAR':
+        case 'settings/TOGGLE_EXCHANGES_BAR':
           setTimeout(() => {
             this.updateChartHeight()
           })
           break
         case 'reloadExchangeState':
-        case 'TOGGLE_LIQUIDATIONS':
-        case 'SET_CHART_PADDING':
-        case 'TOGGLE_VOLUME_SERIE':
-        case 'SET_VOLUME_SERIE_THRESHOLD':
+        case 'settings/TOGGLE_LIQUIDATIONS':
+        case 'settings/SET_CHART_PADDING':
+        case 'settings/TOGGLE_VOLUME_SERIE':
+        case 'settings/SET_VOLUME_SERIE_THRESHOLD':
           if (+new Date() - this.$root.applicationStartTime > 1000) {
             this.redrawChart()
           }
           break
-        case 'TOGGLE_CANDLESTICK':
-        case 'TOGGLE_CHART_GRID':
-        case 'SET_CHART_GRID_GAP':
-        case 'SET_VOLUME_BAR_OPACITY':
+        case 'settings/TOGGLE_CANDLESTICK':
+        case 'settings/TOGGLE_CHART_GRID':
+        case 'settings/SET_CHART_GRID_GAP':
+        case 'settings/SET_VOLUME_BAR_OPACITY':
           this.createChart()
           this.setTimeframe(this.timeframe)
           break
-        case 'TOGGLE_VOLUME_AVERAGE':
+        case 'settings/TOGGLE_VOLUME_AVERAGE':
           this.chart.series[4].update({ visible: mutation.payload })
           this.chart.series[5].update({ visible: mutation.payload })
           break
-        case 'SET_VOLUME_AVERAGE_PERIOD':
+        case 'settings/SET_VOLUME_AVERAGE_PERIOD':
           this.chart.series[4].update({
             params: { period: +mutation.payload || 14 },
           })
@@ -187,15 +187,15 @@ export default {
             params: { period: +mutation.payload || 14 },
           })
           break
-        case 'TOGGLE_PRICE_SMA':
+        case 'settings/TOGGLE_PRICE_SMA':
           this.chart.series[6].update({ visible: mutation.payload })
           break
-        case 'SET_PRICE_SMA_PERIOD':
+        case 'settings/SET_PRICE_SMA_PERIOD':
           this.chart.series[6].update({
             params: { period: +mutation.payload || 14 },
           })
           break
-        case 'TOGGLE_CHART_AUTO_SCALE':
+        case 'settings/TOGGLE_CHART_AUTO_SCALE':
           this.resetScale('x')
           this.resetScale('y')
           break
@@ -786,7 +786,7 @@ export default {
     resetHeight(event) {
       delete this.resizing
 
-      this.$store.commit('SET_CHART_HEIGHT', null)
+      this.$store.commit('settings/SET_CHART_HEIGHT', null)
 
       this.updateChartHeight()
     },
@@ -881,7 +881,7 @@ export default {
       if (axis === 'x') {
         range = this.chart.xAxis[0].max - this.chart.xAxis[0].min
 
-        this.$store.commit('SET_CHART_RANGE', range)
+        this.$store.commit('settings/SET_CHART_RANGE', range)
         this.$store.commit(
           'SET_WIDTH_PER_TICK',
           this.chart.chartWidth / (range / this.timeframe)
@@ -945,7 +945,7 @@ export default {
 
     stopDrag(event) {
       if (this.resizing) {
-        this.$store.commit('SET_CHART_HEIGHT', this.chart.chartHeight)
+        this.$store.commit('settings/SET_CHART_HEIGHT', this.chart.chartHeight)
 
         delete this.resizing
       }
@@ -1019,7 +1019,7 @@ export default {
     },
 
     setRange(range, setExtremes = true) {
-      this.$store.commit('SET_CHART_RANGE', range)
+      this.$store.commit('settings/SET_CHART_RANGE', range)
 
       if (this.chart) {
         const padding = this.chartRange * this.chartPadding
@@ -1109,7 +1109,7 @@ export default {
           const isPanned = this.chart.xAxis[0].max < this.chart.xAxis[0].dataMax
 
           if (!isPanned !== this.isSnaped) {
-            this.$store.commit('toggleSnap', !isPanned)
+            this.$store.commit('settings/toggleSnap', !isPanned)
           }
         },
         load: () => {

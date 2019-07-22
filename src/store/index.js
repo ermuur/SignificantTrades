@@ -13,17 +13,36 @@ const store = new Vuex.Store({
   }
 })
 
+let saveTimeout;
+
 store.subscribe((mutation, state) => {
+  if (/^settings/.test(mutation.type)) {
+    clearTimeout(saveTimeout)
+    
+    saveTimeout = setTimeout(() => {
+      console.log(mutation, 'save..')
+      const copy = JSON.parse(JSON.stringify(state.settings))
+      localStorage.setItem('settings', JSON.stringify(copy))
+    }, 200)
+  }
+
   switch (mutation.type) {
-    case 'SHOW_EXCHANGE':
-    case 'HIDE_EXCHANGE':
-    case 'TOGGLE_EXCHANGE_VISIBILITY':
-    case 'ENABLE_EXCHANGE':
-    case 'DISABLE_EXCHANGE':
-    case 'TOGGLE_EXCHANGE_CHART':
-    case 'SET_EXCHANGE_MATCH':
-      console.log(store);
-      debugger;
+    case 'settings/SHOW_EXCHANGE':
+    case 'settings/HIDE_EXCHANGE':
+    case 'settings/TOGGLE_EXCHANGE_VISIBILITY':
+    case 'settings/ENABLE_EXCHANGE':
+    case 'settings/DISABLE_EXCHANGE':
+    case 'settings/TOGGLE_EXCHANGE_CHART':
+    case 'settings/SET_EXCHANGE_MATCH':
+
+      let name
+      if (typeof mutation.payload.exchange === 'string') {
+        name = mutation.payload.exchange
+      } else {
+        name = mutation.payload
+      }
+
+      store.dispatch('app/refreshExchange', name)
       break
   }
 })

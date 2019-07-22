@@ -51,6 +51,15 @@ export default {
     ...mapState('app', ['actives'])
   },
   created() {
+    this.onStoreMutation = this.$store.subscribe((mutation, state) => {
+      switch (mutation.type) {
+        case 'settings/TOGGLE_EXCHANGES_BAR':
+          setTimeout(() => {
+            chart.resize(this.$el.clientHeight, this.$el.clientWidth)
+          })
+          break
+      }
+    })
   },
   mounted() {
     // create chart
@@ -76,6 +85,9 @@ export default {
 
     // delete chart
     chart.remove()
+
+    // unsubscribe store
+    this.onStoreMutation()
   },
   methods: {
     onFetch(trades) {
