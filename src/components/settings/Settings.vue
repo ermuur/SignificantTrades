@@ -232,15 +232,8 @@
                 <div></div>
               </label>
             </div>
-            <div class="form-group column__fill">
-              <input
-                v-tippy
-                type="string"
-                class="form-control"
-                :value="counter.name"
-                @change="$store.dispatch('settings/updateStatCounter', { index: index, prop: 'name', value: $event.target.value })"
-                placeholder="Name"
-              />
+            <div class="form-group column__fill column__center">
+              {{ counter.name }}
             </div>
             <div class="form-group column__tight">
               <input
@@ -253,7 +246,7 @@
               />
             </div>
             <div class="form-group column__tight">
-              <button class="btn -blue" @click="$store.dispatch('app/openModal', { name: 'stat', id: index })">code</button>
+              <button class="btn -blue" @click="$store.dispatch('app/openModal', { name: 'stat', id: index })"><i class="icon-edit"></i> edit</button>
             </div>
           </div>
         </div>

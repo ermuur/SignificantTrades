@@ -302,6 +302,10 @@
     max-width: 100%;
   }
 
+  > .column__center {
+    align-self: center;
+  }
+
   > div {
     margin-right: 8px;
     flex-grow: 1;
@@ -310,6 +314,7 @@
 
     > .btn {
       height: 100%;
+      white-space: nowrap;
     }
 
     &:last-child {

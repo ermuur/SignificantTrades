@@ -24,7 +24,7 @@
 
   &__title {
     flex-grow: 1;
-    padding: 1em;
+    padding: 1rem;
     line-height: 1
   }
 
@@ -49,5 +49,12 @@
 }
 
 .modal-content {
-  padding: 0 1em 1em;
+  padding: 0 1rem 1rem;
+  font-size: 12px;
+}
+
+.modal-footer {
+  padding: 0 1rem 1rem;
+  display: flex;
+  justify-items: flex-end;
 }

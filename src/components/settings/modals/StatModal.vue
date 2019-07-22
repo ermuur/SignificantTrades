@@ -10,10 +10,23 @@
         </div>
       </div>
       <div class="modal-content">
-        {{ context.period }}
+        <div class="column">
+          <div class="form-group mb8">
+            <label for="">Name</label>
+            <input type="text" class="form-control" :value="context.name">
+          </div>
+          <div class="form-group">
+            <label for="">Period (min)</label>
+            <input type="text" class="form-control" :value="context.period / 60 / 1000">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="">Value</label>
+          <textarea class="form-control" rows="3" :value="context.output"></textarea>
+        </div>
       </div>
       <div class="modal-footer">
-
+        <button class="btn -red"><i class="icon-cross"></i> remove</button>
       </div>
     </div>
   </div>
@@ -23,8 +36,6 @@
 import { mapState } from 'vuex'
 
 import mixin from './modal'
-
-console.log(mixin)
 
 export default {
   mixins: [mixin],
