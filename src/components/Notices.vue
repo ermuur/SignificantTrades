@@ -1,20 +1,20 @@
 <template>
-  <div class="alerts">
+  <div class="notices">
     <div
-      v-for="(alert, index) in alerts"
-      class="alert"
-      :key="alert.id"
-      :class="'alert--' + alert.type"
+      v-for="(notice, index) in notices"
+      class="notice"
+      :key="notice.id"
+      :class="'notice--' + notice.type"
       @click="
-        alert.click ? alert.click(alert) && dismiss(index) : dismiss(index)
+        notice.click ? notice.click(notice) && dismiss(index) : dismiss(index)
       "
     >
-      <span class="alert__icon icon-"></span>
-      <div class="alert__title">{{ alert.title }}</div>
+      <span class="notice__icon icon-"></span>
+      <div class="notice__title">{{ notice.title }}</div>
       <div
-        v-if="alert.message"
-        class="alert__message"
-        v-html="alert.message"
+        v-if="notice.message"
+        class="notice__message"
+        v-html="notice.message"
       ></div>
     </div>
   </div>
@@ -26,59 +26,58 @@ import socket from '../services/socket'
 export default {
   data() {
     return {
-      alerts: [],
+      notices: [],
     }
   },
   created() {
-    console.log('listen alert')
-    socket.$on('alert', (alert) => {
-      if (alert === 'clear') {
-        this.alerts.splice(0, this.alerts.length)
+    socket.$on('notice', (notice) => {
+      if (notice === 'clear') {
+        this.notices.splice(0, this.notices.length)
         return
       }
 
-      if (alert.id) {
-        for (let _alert of this.alerts) {
-          if (_alert.id === alert.id) {
-            this.alerts.splice(this.alerts.indexOf(_alert), 1)
+      if (notice.id) {
+        for (let _notice of this.notices) {
+          if (_notice.id === notice.id) {
+            this.notices.splice(this.notices.indexOf(_notice), 1)
 
             break
           }
         }
       } else {
-        alert.id = Math.random()
+        notice.id = Math.random()
           .toString(36)
           .substring(7)
       }
 
-      alert.timestamp = +new Date()
+      notice.timestamp = +new Date()
 
-      if (!alert.title) {
-        alert.title = alert.message
+      if (!notice.title) {
+        notice.title = notice.message
 
-        delete alert.message
+        delete notice.message
       }
 
-      if (!alert.title && !alert.message) {
+      if (!notice.title && !notice.message) {
         return
       }
 
-      if (alert.message) {
-        alert.message = alert.message.trim().replace(/\n/, '<br>')
+      if (notice.message) {
+        notice.message = notice.message.trim().replace(/\n/, '<br>')
       }
 
-      this.alerts.push(alert)
+      this.notices.push(notice)
 
-      if (alert.type !== 'error') {
+      if (notice.type !== 'error') {
         setTimeout(() => {
-          this.dismiss(this.alerts.indexOf(alert))
-        }, alert.delay || 1000 * 30)
+          this.dismiss(this.notices.indexOf(notice))
+        }, notice.delay || 1000 * 30)
       }
     })
   },
   methods: {
     dismiss(index) {
-      this.alerts.splice(index, 1)
+      this.notices.splice(index, 1)
     },
   },
 }
@@ -87,7 +86,7 @@ export default {
 <style lang="scss">
 @import '../assets/sass/variables';
 
-.alerts {
+.notices {
   position: fixed;
   top: 0;
   left: 0;
@@ -100,7 +99,7 @@ export default {
   pointer-events: none;
 }
 
-.alert {
+.notice {
   display: flex;
   color: white;
   cursor: pointer;
@@ -115,51 +114,51 @@ export default {
   margin-bottom: 10px;
   pointer-events: all;
 
-  > .alert__message {
+  > .notice__message {
     flex-basis: 100%;
     font-size: 70%;
     margin: 5px 0 0;
     line-height: 1.4;
   }
 
-  > .alert__title {
+  > .notice__title {
     flex-grow: 1;
   }
 
-  > .alert__icon {
+  > .notice__icon {
     flex-basis: auto;
     margin-right: 5px;
     font-size: 18px;
   }
 
-  &.alert--error {
+  &.notice--error {
     background-color: $red;
 
-    .alert__icon:before {
+    .notice__icon:before {
       content: unicode($icon-cross);
     }
   }
 
-  &.alert--warning {
+  &.notice--warning {
     background-color: $orange;
 
-    .alert__icon:before {
+    .notice__icon:before {
       content: unicode($icon-warning);
     }
   }
 
-  &.alert--success {
+  &.notice--success {
     background-color: $green;
 
-    .alert__icon:before {
+    .notice__icon:before {
       content: unicode($icon-check);
     }
   }
 
-  &.alert--info {
+  &.notice--info {
     background-color: $blue;
 
-    .alert__icon:before {
+    .notice__icon:before {
       content: unicode($icon-info);
     }
   }

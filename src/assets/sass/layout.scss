@@ -283,3 +283,41 @@
 		display: none;
 	}
 }
+
+.column {
+  display: flex;
+  flex-direction: row;
+
+  > .column__tight {
+    flex-basis: auto;
+    flex-grow: 0;
+
+    label {
+      white-space: nowrap;
+    }
+  }
+
+  > .column__fill {
+    flex-basis: 100%;
+    max-width: 100%;
+  }
+
+  > div {
+    margin-right: 8px;
+    flex-grow: 1;
+    flex-basis: 50%;
+    max-width: 50%;
+
+    > .btn {
+      height: 100%;
+    }
+
+    &:last-child {
+      margin-right: 0;
+    }
+  }
+
+  &:last-child .form-group {
+    margin-bottom: 0;
+  }
+}

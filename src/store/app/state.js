@@ -1,4 +1,7 @@
 export default {
   actives: [],
-  isLoading: false
+  isLoading: false,
+  statModalId: null,
+  serieModalId: null,
+  exchangeModalId: null,
 }

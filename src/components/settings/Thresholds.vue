@@ -176,7 +176,7 @@
 import { mapState } from 'vuex'
 
 import { Chrome } from 'vue-color'
-import { formatPrice, formatAmount } from '../utils/helpers'
+import { formatPrice, formatAmount } from '../../utils/helpers'
 
 export default {
   components: {
@@ -583,7 +583,7 @@ export default {
 </script>
 
 <style lang="scss">
-@import '../assets/sass/variables';
+@import '../../assets/sass/variables';
 
 .thresholds {
   position: relative;

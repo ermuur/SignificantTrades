@@ -102,9 +102,9 @@
 
 <script>
 import { mapState } from 'vuex'
-import { formatPrice, formatAmount } from '../utils/helpers'
+import { formatPrice, formatAmount } from '../../utils/helpers'
 
-import socket from '../services/socket'
+import socket from '../../services/socket'
 
 export default {
   data() {
@@ -140,7 +140,7 @@ export default {
       }, 3000);
 
       this.exchange.refreshProducts().then(() => {
-        socket.$emit('alert', {
+        socket.$emit('notice', {
           type: 'info',
           title: `${this.exchange.id}'s products refreshed`,
           message: `${this.exchange.indexedProducts.length} products was saved`,
@@ -152,7 +152,7 @@ export default {
 </script>
 
 <style lang="scss">
-@import '../assets/sass/variables';
+@import '../../assets/sass/variables';
 
 .settings-exchange {
   background-color: rgba(white, 0.15);

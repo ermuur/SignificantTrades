@@ -10,9 +10,14 @@
       loading: isLoading,
     }"
   >
+    <StatModal v-if="statModalId !== null" :contextName="'stat'" :contextId="statModalId" />
+    <SerieModal v-if="serieModalId !== null" :contextName="'serie'" :contextId="serieModalId" />
+    <ExchangeModal v-if="exchangeModalId !== null" :contextName="'exchange'" :contextId="exchangeModalId" />
+
     <Settings v-if="showSettings" @close="showSettings = false" />
+
     <div class="app__wrapper">
-      <Alerts />
+      <Notices />
       <Header :price="price" @toggleSettings="showSettings = !showSettings" />
       <div class="app__layout">
         <div class="app__left" v-if="showChart">
@@ -35,18 +40,22 @@ import { formatPrice, formatAmount } from './utils/helpers'
 
 import socket from './services/socket'
 
-import Alerts from './components/Alerts.vue'
+import Notices from './components/Notices.vue'
 import Header from './components/Header.vue'
-import Settings from './components/Settings.vue'
+import Settings from './components/settings/Settings.vue'
 import TradeList from './components/TradeList.vue'
 import Chart from './components/chart/Chart.vue'
 import Counters from './components/Counters.vue'
 import Stats from './components/Stats.vue'
 import Exchanges from './components/Exchanges.vue'
 
+import ExchangeModal from './components/settings/modals/ExchangeModal.vue'
+import SerieModal from './components/settings/modals/SerieModal.vue'
+import StatModal from './components/settings/modals/StatModal.vue'
+
 export default {
   components: {
-    Alerts,
+    Notices,
     Header,
     Settings,
     TradeList,
@@ -54,6 +63,9 @@ export default {
     Counters,
     Stats,
     Exchanges,
+    ExchangeModal,
+    SerieModal,
+    StatModal,
   },
   name: 'app',
   data() {
@@ -81,6 +93,9 @@ export default {
     ...mapState('app', [
       'actives',
       'isLoading',
+      'statModalId',
+      'serieModalId',
+      'exchangeModalId'
     ]),
   },
   created() {
@@ -109,7 +124,7 @@ export default {
     fetch('showads.js')
       .then(() => {})
       .catch((response, a) => {
-        socket.$emit('alert', {
+        socket.$emit('notice', {
           type: 'error',
           title: `Disable your AdBlocker`,
           message: `Some adblockers may block access to exchanges api.\nMake sure to turn it off, you wont find any ads here ever :-)`,
@@ -233,10 +248,12 @@ export default {
 @import './assets/sass/variables';
 @import './assets/sass/helper';
 @import './assets/sass/layout';
+@import './assets/sass/form';
 @import './assets/sass/icons';
 @import './assets/sass/currency';
 @import './assets/sass/tooltip';
 @import './assets/sass/dropdown';
 @import './assets/sass/button';
 @import './assets/sass/autocomplete';
+@import './assets/sass/modal';
 </style>

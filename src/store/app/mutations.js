@@ -16,5 +16,14 @@ export default {
   },
   TOGGLE_LOADING(state, value) {
     state.isLoading = value ? true : false
+  },
+  TOGGLE_STAT_MODAL(state, id) {
+    state.statModalId = !isNaN(id) ? id : null
+  },
+  TOGGLE_SERIE_MODAL(state, id) {
+    state.serieModalId = !isNaN(id) ? id : null
+  },
+  TOGGLE_EXCHANGE_MODAL(state, id) {
+    state.exchangeModalId = !isNaN(id) ? id : null
   }
 }

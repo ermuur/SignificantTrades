@@ -1,16 +1,18 @@
 import socket from '../services/socket'
+import store from '../store'
 
-const GRANULARITY = 1000 * 5 // 5s
-const DURATION = 1000 * 60 * 3 // 3m
+const GRANULARITY = store.state.settings.statsGranularity // 5s
+const PERIOD = store.state.settings.statsPeriod // 3m
+
 
 export default class {
-  constructor(model, callback, subscribe = true) {
-    this.model = () => model.map(a => 0);
+  constructor(callback, period, subscribe = true) {
     this.callback = callback;
+    this.period = !isNaN(period) ? period : PERIOD;
     this.timeouts = [];
 
     this.clear();
-    
+
     if (subscribe) {
       this._onTrades = this.onTrades.bind(this);
       socket.$on('trades.queued', this._onTrades)
@@ -18,19 +20,23 @@ export default class {
 
     if (module.hot) {
       module.hot.dispose(() => {
-        socket.$off('trades.queued', this._onTrades);
-        this.clear()
+        this.destroy()
       })
     }
   }
 
   clear() {
-    this.live = this.model();
+    this.live = 0;
     this.stacks = []
 
     for (let i = 0; i < this.timeouts.length; i++) {
       clearTimeout(this.timeouts[i]);
     }
+  }
+
+  destroy() {
+    socket.$off('trades.queued', this._onTrades);
+    this.clear()
   }
 
   onTrades(trades, stats) {
@@ -39,24 +45,20 @@ export default class {
     if (!this.stacks.length || trades[0].timestamp > this.timestamp + GRANULARITY) {
       this.appendStack(trades[0].timestamp)
     }
-    console.log('onTrades', data, this.live);
 
-    for (let i = 0; i < data.length; i++) {
-      this.stacks[this.stacks.length - 1][i] += data[i]
-      this.live[i] += data[i]
-    }
+    this.stacks[this.stacks.length - 1] += data
+    this.live += data
   }
 
   appendStack(timestamp) {
-    console.log('appendStack');
     if (!timestamp) {
       timestamp = +new Date()
     }
 
-    this.stacks.push(this.model())
+    this.stacks.push(0)
     this.timestamp = Math.floor(timestamp / 1000) * 1000;
 
-    this.timeouts.push(setTimeout(this.shiftStack.bind(this), DURATION))
+    this.timeouts.push(setTimeout(this.shiftStack.bind(this), this.period))
   }
 
   shiftStack(index = 0) {
@@ -66,10 +68,7 @@ export default class {
       return;
     }
 
-    for (let i = 0; i < stack.length; i++) {
-      this.live[i] -= stack[i]
-      console.log('shiftStack', stack[i]);
-    }
+    this.live -= stack
 
     this.timeouts.shift()
   }

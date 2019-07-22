@@ -83,6 +83,8 @@ const emitter = new Vue({
     },
   },
   created() {
+    window.getTrades = () => this.trades;
+
     this.exchanges.forEach((exchange) => {
       exchange.on('trades', (trades) => {
         if (!trades || !trades.length) {
@@ -135,7 +137,7 @@ const emitter = new Vue({
         for (let i = 0; i < this.exchanges.length; i++) {
           this.exchanges[i].disconnect();
         }
-        
+
         clearTimeout(this._connectExchangesTimeout);
         clearInterval(this._processQueueInterval);
       })
@@ -166,13 +168,13 @@ const emitter = new Vue({
 
       this._connectExchangesTimeout = setTimeout(this.connectExchanges.bind(this))
 
-      this._processQueueInterval = setInterval(this.processQueue.bind(this), 500)
+      this._processQueueInterval = setInterval(this.processQueue.bind(this), 1000)
     },
     connectExchanges(pair = null) {
       this.disconnectExchanges()
 
       if (!pair && !this.pair) {
-        return this.$emit('alert', {
+        return this.$emit('notice', {
           id: `server_status`,
           type: 'error',
           title: `No pair`,
@@ -189,7 +191,7 @@ const emitter = new Vue({
 
       console.log(`[socket.connect] connecting to ${this.pair}`)
 
-      this.$emit('alert', {
+      this.$emit('notice', {
         id: `server_status`,
         type: 'info',
         title: `Loading`,
@@ -202,7 +204,7 @@ const emitter = new Vue({
         let validExchanges = this.exchanges.filter((exchange) => exchange.valid)
 
         if (!validExchanges.length) {
-          this.$emit('alert', {
+          this.$emit('notice', {
             id: `server_status`,
             type: 'error',
             title: `No match`,
@@ -212,7 +214,7 @@ const emitter = new Vue({
           return
         }
 
-        this.$emit('alert', {
+        this.$emit('notice', {
           id: `server_status`,
           type: 'info',
           title: `Loading`,
@@ -235,7 +237,7 @@ const emitter = new Vue({
           (exchange) => !this.exchangesSettings[exchange.id].disabled
         )
 
-        this.$emit('alert', {
+        this.$emit('notice', {
           id: `server_status`,
           type: 'info',
           title: `Loading`,
@@ -358,8 +360,8 @@ const emitter = new Vue({
       const output = []
 
       for (let i = 0; i < trades.length; i++) {
-        if (trades[i].price * trades[i].size < 1000) {
-          const id = trades[i].exchange + trades[i].side;
+        if (trades[i].price * trades[i].size < 100000) {
+          const id = (Math.floor(trades[i].timestamp / 1000) * 1000) + trades[i].exchange + trades[i].side;
 
           if (groups[id]) {
             output[groups[id]].count++;
@@ -367,6 +369,8 @@ const emitter = new Vue({
             output[groups[id]].size += +trades[i].size
 
             sums[id] += trades[i].price * trades[i].size
+
+            continue;
           } else {
             // index of the group
             groups[id] = output.length
@@ -386,8 +390,6 @@ const emitter = new Vue({
       for (let i = 0; i < groupIds.length; i++) {
         output[groups[groupIds[i]]].price = sums[groupIds[i]] / output[groups[groupIds[i]]].size
       }
-
-      console.log('compress', trades.length, 'into', output.length);
 
       return output
     },
@@ -559,7 +561,7 @@ const emitter = new Vue({
             this._fetchedMax = true
 
             err &&
-              this.$emit('alert', {
+              this.$emit('notice', {
                 type: 'error',
                 title: `Unable to retrieve history`,
                 message:

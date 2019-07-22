@@ -12,17 +12,11 @@ import Counter from '../utils/counter'
 
 /** @type {Counter[]} */
 const counters = []
-const CUSTOM_COUNTER = {
-  trades: `[stats.buyCount + stats.sellCount]`
-}
 
 export default {
   data() {
     return {
-      data: Object.keys(CUSTOM_COUNTER).reduce((obj, name) => {
-        obj[name] = 0
-        return obj
-      }, {})
+      data: {}
     }
   },
 
@@ -30,8 +24,7 @@ export default {
     ...mapState('settings', [
       'statsPeriod',
       'statsGraphs',
-      'statsGraphsTimeframe',
-      'statsGraphsLength',
+      'statsCounters',
       'preferQuoteCurrencySize'
     ]),
     ...mapState('app', [
@@ -49,11 +42,7 @@ export default {
     })
   },
   mounted() {
-    for (let name in CUSTOM_COUNTER) {
-      counters.push(new Counter([0], (stats, trades) => eval(CUSTOM_COUNTER[name]), false))
-      counters[counters.length - 1].name = name;
-      this.data[name] = 0
-    }
+    this.prepareCounters();
 
     socket.$on('trades.queued', this.onTrades)
     socket.$on('historical', this.onFetch)
@@ -67,10 +56,38 @@ export default {
     this.onStoreMutation()
   },
   methods: {
+    prepareCounters() {
+      console.log(`[stats.prepareCounters]`)
+      for (let i = 0; i < counters.length; i++) {
+        console.log(`\tdestroy counter ${counters[i].name}`);
+        counters[i].destroy();
+      }
+
+      // create counters
+      for (let i = 0; i < this.statsCounters.length; i++) {
+        if (!this.statsCounters[i].enabled) {
+          continue;
+        }
+
+        console.log(`\tcreate counter ${this.statsCounters[i].name}`);
+
+        const counter = new Counter((stats, trades) => eval(this.statsCounters[i].output), this.statsCounters[i].period, false);
+        counter.name = this.statsCounters[i].name;
+
+        counters.push(counter)
+      }
+
+      // initialize data interface
+      this.data = counters.reduce((obj, counter) => {
+        obj[counter.name] = 0
+        return obj
+      }, {});
+    },
     onTrades(trades, stats) {
       for (let i = 0; i < counters.length; i++) {
         counters[i].onTrades(trades, stats)
-        this.$set(this.data, counters[i].name, counters[i].live.join(','))
+
+        this.$set(this.data, counters[i].name, counters[i].live)
       }
     },
     onFetch(trades, from, to) {

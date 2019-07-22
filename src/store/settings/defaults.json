@@ -46,10 +46,23 @@
   "cumulativeCounters": true,
   "showStats": true,
   "showChart": true,
-  "statsPeriod": 60000,
   "statsGraphs": true,
-  "statsGraphsTimeframe": 3000,
-  "statsGraphsLength": 100,
+  "statsGranularity": 5000,
+  "statsPeriod": 180000,
+  "statsCounters": [
+    {
+      "name": "trades",
+      "output": "stats.buyCount + stats.sellCount",
+      "enabled": true,
+      "period": 180000
+    },
+    {
+      "name": "delta",
+      "output": "stats.buyAmount - stats.sellAmount",
+      "enabled": false,
+      "period": 180000
+    }
+  ],
   "chartPadding": 0.075,
   "chartGridlines": true,
   "chartGridlinesGap": 80,
