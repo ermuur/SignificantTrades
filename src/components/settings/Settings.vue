@@ -215,38 +215,38 @@
                 <div></div>
               </label>
             </div>
-          </div>
-          <div v-for="(counter, index) in statsCounters" :key="index" class="column mb8">
-            <div class="form-group column__tight">
-              <label
-                class="checkbox-control -on-off checkbox-control-input flex-right"
-                v-tippy="{ placement: 'bottom' }"
-                title="Enable counter"
-              >
-                <input
-                  type="checkbox"
-                  class="form-control"
-                  :checked="counter.enabled"
-                  @change="$store.commit('settings/updateStatCounter', { index: index, prop: 'enabled', value: $event.target.checked })"
-                />
-                <div></div>
-              </label>
-            </div>
-            <div class="form-group column__fill column__center">
-              {{ counter.name }}
-            </div>
-            <div class="form-group column__tight">
-              <input
-                v-tippy
-                type="string"
-                class="form-control"
-                :value="counter.period"
-                @change="$store.dispatch('settings/updateStatCounter', { index: index, prop: 'period', value: $event.target.value })"
-                placeholder="Period"
-              />
-            </div>
-            <div class="form-group column__tight">
-              <button class="btn -blue" @click="$store.dispatch('app/openModal', { name: 'stat', id: index })"><i class="icon-edit"></i> edit</button>
+            <div class="form-group column__fill">
+              <div class="column">
+                <div class="form-group column__fill flex-center">Custom stats</div>
+                <div class="form-group column__tight">
+                  <button class="btn -blue" @click="$store.commit('settings/CREATE_STAT'), $store.dispatch('app/openModal', { name: 'stat', id: statsCounters.length - 1 })">
+                    <i class="icon-add mr4"></i> add
+                  </button>
+                </div>
+              </div>
+              <div v-for="(counter, index) in statsCounters" :key="index" class="column mt8">
+                <div class="form-group column__tight">
+                  <label
+                    class="checkbox-control -on-off checkbox-control-input flex-right"
+                    v-tippy="{ placement: 'bottom' }"
+                    title="Enable counter"
+                  >
+                    <input
+                      type="checkbox"
+                      class="form-control"
+                      :checked="counter.enabled"
+                      @change="$store.dispatch('settings/updateStat', { index: index, prop: 'enabled', value: $event.target.checked })"
+                    />
+                    <div></div>
+                  </label>
+                </div>
+                <div class="form-group column__fill column__center">
+                  {{ counter.name }}
+                </div>
+                <div class="form-group column__tight">
+                  <button class="btn -green" @click="$store.dispatch('app/openModal', { name: 'stat', id: index })"><i class="icon-edit"></i></button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -623,7 +623,7 @@
               />
               <div></div>
               <span @click.stop.prevent="$event.target.children[0].focus()">
-                Stack trades to match threshold over
+                Aggregation lag
                 <editable
                   placeholder="no lag"
                   :content="aggregationLag"

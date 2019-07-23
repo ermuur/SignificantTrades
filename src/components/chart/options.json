@@ -37,7 +37,7 @@
             "lockVisibleTimeRangeOnResize": true,
             "rightBarStaysOnScroll": true,
             "borderVisible": true,
-            "borderColor": "#fff000",
+            "borderColor": "rgba(255, 255, 255, .2)",
             "visible": true,
             "timeVisible": true,
             "secondsVisible": false
@@ -45,7 +45,7 @@
         "priceScale": {
             "position": "right",
             "mode": 1,
-            "borderColor": "#fff000"
+            "borderColor": "rgba(255, 255, 255, .2)"
         }
     },
     "series": {
@@ -68,9 +68,9 @@
             "borderVisible": false,
             "upColor": "rgb(195, 168, 122)",
             "downColor": "rgb(193, 64, 71)",
-            "wickColor": "rgba(255, 255, 255, .5)",
+            "wickColor": "rgba(224, 190, 148, .5)",
             "wickUpColor": "rgba(195, 168, 122, .5)",
-            "wickDownColor": "rgba(193, 64, 71, .5)"
+            "wickDownColor": "rgba(224, 91, 95, .5)"
         }
     }
 }

@@ -323,6 +323,14 @@ const emitter = new Vue({
       const output = this.compressTrades(this.queue)
 
       this.trades = this.trades.concat(output)
+
+      const stats = this.getStatsByTrades(output);
+
+      this.queue.splice(0, this.queue.length)
+
+      this.$emit('trades.queued', output, stats)
+    },
+    getStatsByTrades(trades) {
       const stats = {
         buyCount: 0,
         buySize: 0,
@@ -332,27 +340,25 @@ const emitter = new Vue({
         sellAmount: 0
       }
 
-      let i = output.length;
+      let i = trades.length;
 
       while (i--) {
-        if (this.actives.indexOf(output[i].exchange) === -1) {
-          output.splice(i, 1)
+        if (this.actives.indexOf(trades[i].exchange) === -1) {
+          trades.splice(i, 1)
         } else {
-          if (output[i].side === 'buy') {
-            stats.buyCount += output[i].count || 1
-            stats.buySize += output[i].size
-            stats.buyAmount += output[i].price * output[i].size
+          if (trades[i].side === 'buy') {
+            stats.buyCount += trades[i].count || 1
+            stats.buySize += trades[i].size
+            stats.buyAmount += trades[i].price * trades[i].size
           } else {
-            stats.sellCount += output[i].count || 1
-            stats.sellSize += output[i].size
-            stats.sellAmount += output[i].price * output[i].size
+            stats.sellCount += trades[i].count || 1
+            stats.sellSize += trades[i].size
+            stats.sellAmount += trades[i].price * trades[i].size
           }
         }
       }
 
-      this.queue.splice(0, this.queue.length)
-
-      this.$emit('trades.queued', output, stats)
+      return stats;
     },
     compressTrades(trades) {
       const sums = {}

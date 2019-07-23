@@ -4,12 +4,18 @@ import store from '../store'
 const GRANULARITY = store.state.settings.statsGranularity // 5s
 const PERIOD = store.state.settings.statsPeriod // 3m
 
-
-export default class {
+export default class Counter {
   constructor(callback, period, subscribe = true) {
     this.callback = callback;
     this.period = !isNaN(period) ? period : PERIOD;
+    this.granularity = Math.max(GRANULARITY, this.period / 50)
     this.timeouts = [];
+
+    console.log('[counter.js] create', {
+      callback: this.callback,
+      period: this.period,
+      granularity: this.granularity,
+    })
 
     this.clear();
 
@@ -20,13 +26,13 @@ export default class {
 
     if (module.hot) {
       module.hot.dispose(() => {
-        this.destroy()
+        this.unbind()
       })
     }
   }
 
   clear() {
-    this.live = 0;
+    this.live = this.getModel();
     this.stacks = []
 
     for (let i = 0; i < this.timeouts.length; i++) {
@@ -34,7 +40,8 @@ export default class {
     }
   }
 
-  destroy() {
+  unbind() {
+    console.log('[counter.js] unbind')
     socket.$off('trades.queued', this._onTrades);
     this.clear()
   }
@@ -42,12 +49,15 @@ export default class {
   onTrades(trades, stats) {
     const data = this.callback(stats, trades)
 
-    if (!this.stacks.length || trades[0].timestamp > this.timestamp + GRANULARITY) {
+    if (!data) {
+      return;
+    }
+
+    if (!this.stacks.length || trades[0].timestamp > this.timestamp + this.granularity) {
       this.appendStack(trades[0].timestamp)
     }
 
-    this.stacks[this.stacks.length - 1] += data
-    this.live += data
+    this.addData(data)
   }
 
   appendStack(timestamp) {
@@ -55,7 +65,7 @@ export default class {
       timestamp = +new Date()
     }
 
-    this.stacks.push(0)
+    this.stacks.push(this.getModel())
     this.timestamp = Math.floor(timestamp / 1000) * 1000;
 
     this.timeouts.push(setTimeout(this.shiftStack.bind(this), this.period))
@@ -68,8 +78,25 @@ export default class {
       return;
     }
 
-    this.live -= stack
+    this.substractData(stack);
 
     this.timeouts.shift()
+  }
+
+  getModel() {
+    return 0
+  }
+
+  addData(data) {
+    this.stacks[this.stacks.length - 1] += data
+    this.live += data
+  }
+
+  substractData(data) {
+    this.live -= data
+  }
+
+  getValue() {
+    return this.live;
   }
 }

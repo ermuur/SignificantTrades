@@ -1,5 +1,7 @@
 import Vue from 'vue'
 
+import { uniqueName } from '../../utils/helpers'
+
 export default {
   SET_PAIR(state, value) {
     state.pair = value.toString().toUpperCase()
@@ -34,18 +36,74 @@ export default {
   TOGGLE_STATS(state, value) {
     state.showStats = value ? true : false
   },
-  SET_STATS_PERIOD(state, value) {
-    let period
+  TOGGLE_STAT(state, { index, value }) {
+    const stat = state.statsCounters[index]
 
-    if (/[\d.]+s/.test(value)) {
-      period = parseFloat(value) * 1000
-    } else if (/[\d.]+h/.test(value)) {
-      period = parseFloat(value) * 1000 * 60 * 60
-    } else {
-      period = parseFloat(value) * 1000 * 60
+    stat.enabled = value ? true : false;
+
+    Vue.set(state.statsCounters, index, stat)
+  },
+  SET_STAT_PERIOD(state, { index, value }) {
+    let milliseconds = parseInt(value);
+
+    if (isNaN(milliseconds)) {
+      return false
     }
 
-    state.statsPeriod = period
+    if (/[\d.]+s/.test(value)) {
+      milliseconds *= 1000
+    } else if (/[\d.]+h/.test(value)) {
+      milliseconds *= 1000 * 60 * 60
+    } else {
+      milliseconds *= 1000 * 60
+    }
+
+    const stat = state.statsCounters[index]
+
+    stat.period = milliseconds;
+
+    Vue.set(state.statsCounters, index, stat)
+  },
+  SET_STAT_OUTPUT(state, { index, value }) {
+    const stat = state.statsCounters[index]
+
+    stat.output = value;
+
+    Vue.set(state.statsCounters, index, stat)
+  },
+  SET_STAT_NAME(state, { index, value }) {
+    const stat = state.statsCounters[index]
+    const names = state.statsCounters.map(a => a.name)
+
+    names.splice(index, 1)
+
+    stat.name = uniqueName(value, names);
+
+    Vue.set(state.statsCounters, index, stat)
+  },
+  CREATE_STAT(state) {
+    state.statsCounters.push({
+      name: uniqueName('COUNTER', state.statsCounters.map(a => a.name)),
+      period: state.statsPeriod,
+      output: 'stats.buyCount + stats.sellCount',
+      enabled: false
+    })
+  },
+  REMOVE_STAT(state, index) {
+    state.statsCounters.splice(index, 1);
+  },
+  SET_STATS_PERIOD(state, value) {
+    let milliseconds = parseInt(value);
+
+    if (/[\d.]+s/.test(value)) {
+      milliseconds *= 1000
+    } else if (/[\d.]+h/.test(value)) {
+      milliseconds *= 1000 * 60 * 60
+    } else {
+      milliseconds *= 1000 * 60
+    }
+
+    state.statsPeriod = milliseconds
   },
   TOGGLE_STATS_GRAPHS(state, value) {
     state.statsGraphs = value ? true : false;

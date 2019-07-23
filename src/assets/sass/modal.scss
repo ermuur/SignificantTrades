@@ -48,13 +48,13 @@
   }
 }
 
-.modal-content {
+.modal-content,
+.modal-footer {
   padding: 0 1rem 1rem;
   font-size: 12px;
 }
 
 .modal-footer {
-  padding: 0 1rem 1rem;
   display: flex;
-  justify-items: flex-end;
+  justify-items: space-between;
 }

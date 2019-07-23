@@ -37,7 +37,7 @@
   "maxRows": 20,
   "decimalPrecision": null,
   "aggregationLag": null,
-  "showLogos": false,
+  "showLogos": true,
   "liquidationsOnlyList": false,
   "showCounters": false,
   "counterPrecision": 10000,
@@ -51,16 +51,34 @@
   "statsPeriod": 180000,
   "statsCounters": [
     {
-      "name": "trades",
+      "name": "TRADES",
       "output": "stats.buyCount + stats.sellCount",
       "enabled": true,
       "period": 180000
     },
     {
-      "name": "delta",
+      "name": "VOLUME Δ",
       "output": "stats.buyAmount - stats.sellAmount",
+      "enabled": true,
+      "period": 180000
+    },
+    {
+      "name": "TRADES Δ",
+      "output": "stats.buyCount - stats.sellCount",
       "enabled": false,
       "period": 180000
+    },
+    {
+      "name": "1H LIQUIDATIONS",
+      "output": "var output = 0;\nfor (var i=0; i<trades.length; i++) {\n\tif (trades[i].liquidation)\n\t\toutput += trades[i].price * trades[i].size\n}\noutput;",
+      "enabled": false,
+      "period": 3600000
+    },
+    {
+      "name": "1H 100K+",
+      "output": "var output = 0;\nfor (var i=0; i<trades.length; i++) {\n\tif (trades[i].price * trades[i].size >= 100000)\n\t\toutput++\n}\noutput;",
+      "enabled": false,
+      "period": 3600000
     }
   ],
   "chartPadding": 0.075,

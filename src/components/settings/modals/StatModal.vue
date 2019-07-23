@@ -13,20 +13,42 @@
         <div class="column">
           <div class="form-group mb8">
             <label for="">Name</label>
-            <input type="text" class="form-control" :value="context.name">
+            <input type="text" class="form-control" :value="context.name" @change="$store.dispatch('settings/updateStat', {
+              index: contextId,
+              prop: 'name',
+              value: $event.target.value
+            })">
           </div>
           <div class="form-group">
             <label for="">Period (min)</label>
-            <input type="text" class="form-control" :value="context.period / 60 / 1000">
+            <input type="text" class="form-control" :value="context.period / 60 / 1000" @change="$store.dispatch('settings/updateStat', {
+              index: contextId,
+              prop: 'period',
+              value: $event.target.value
+            })">
           </div>
         </div>
         <div class="form-group">
           <label for="">Value</label>
-          <textarea class="form-control" rows="3" :value="context.output"></textarea>
+          <textarea class="form-control" rows="3" :value="context.output" @change="$store.dispatch('settings/updateStat', {
+            index: contextId,
+            prop: 'output',
+            value: $event.target.value
+          })"></textarea>
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn -red"><i class="icon-cross"></i> remove</button>
+        <label class="checkbox-control flex-left">
+          <input
+            type="checkbox"
+            class="form-control"
+            :checked="context.enabled"
+            @change="$store.dispatch('settings/updateStat', { index: contextId, prop: 'enabled', value: $event.target.checked })"
+          />
+          <div></div>
+          <span>{{ context.enabled ? 'Enabled' : 'Disabled' }}</span>
+        </label>
+        <button class="btn -red -small" @click="$store.commit('settings/REMOVE_STAT', contextId), close()"><i class="icon-cross mr4"></i> remove</button>
       </div>
     </div>
   </div>

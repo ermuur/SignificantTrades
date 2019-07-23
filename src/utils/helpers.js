@@ -130,3 +130,14 @@ export function ago(timestamp) {
 
   return output
 }
+
+export function uniqueName(name, names) {
+  let base = name.substr();
+  let variante = 1;
+
+  while (names.indexOf(name) !== -1) {
+    name = base + (++variante)
+  }
+
+  return name;
+}
