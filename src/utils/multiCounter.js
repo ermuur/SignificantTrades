@@ -1,30 +1,25 @@
-import Counter from './counter';
+import Counter from './Counter';
+import { formatAmount } from './helpers';
 
 export default class MultiCounter extends Counter {
-  constructor(callback, period, subscribe = true, model = [0, 0]) {
-    super(arguments);
-
-    this.model = model;
-  }
-
   getModel() {
     return JSON.parse(JSON.stringify(this.model))
   }
 
   addData(data) {
     for (let i = 0; i < data.length; i++) {
-      this.stacks[this.stacks.length - 1][i] += data
-      this.live += data
+      this.stacks[this.stacks.length - 1][i] += data[i]
+      this.live[i] += data[i]
     }
   }
 
   substractData(data) {
     for (let i = 0; i < data.length; i++) {
-      this.live -= data
+      this.live[i] -= data[i]
     }
   }
 
   getValue() {
-    return this.live.join('/');
+    return this.live.map(a => formatAmount(a)).join(' / ');
   }
 }

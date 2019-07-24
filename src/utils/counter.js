@@ -1,15 +1,20 @@
 import socket from '../services/socket'
 import store from '../store'
+import { formatAmount } from '../utils/helpers'
 
 const GRANULARITY = store.state.settings.statsGranularity // 5s
 const PERIOD = store.state.settings.statsPeriod // 3m
 
 export default class Counter {
-  constructor(callback, period, subscribe = true) {
+  constructor(callback, { period, subscribe, model } = {}) {
     this.callback = callback;
     this.period = !isNaN(period) ? period : PERIOD;
     this.granularity = Math.max(GRANULARITY, this.period / 50)
     this.timeouts = [];
+
+    if (typeof model !== 'undefined') {
+      this.model = model;
+    }
 
     console.log('[counter.js] create', {
       callback: this.callback,
@@ -49,7 +54,8 @@ export default class Counter {
   onTrades(trades, stats) {
     const data = this.callback(stats, trades)
 
-    if (!data) {
+    if ((this.constructor.name === 'Counter' && !data) || (this.constructor.name === 'MultiCounter' && !+data.join('') === 0)) {
+      console.log('data skipped', data);
       return;
     }
 
@@ -97,6 +103,6 @@ export default class Counter {
   }
 
   getValue() {
-    return this.live;
+    return formatAmount(this.live);
   }
 }

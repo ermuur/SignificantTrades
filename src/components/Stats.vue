@@ -2,7 +2,7 @@
   <div id="stats" class="stats">
     <div v-for="(value, name) in data" :key="name" class="custom-stat" @click="editByName(name)">
       <div class="custom-stat__name">{{ name }}</div>
-      <div class="custom-stat__value">{{ $root.formatAmount(value) }}</div>
+      <div class="custom-stat__value">{{ value }}</div>
     </div>
   </div>
 </template>
@@ -11,7 +11,7 @@
 import { mapState } from 'vuex'
 
 import socket from '../services/socket'
-import Counter from '../utils/counter'
+import Counter from '../utils/Counter'
 import MultiCounter from '../utils/MultiCounter'
 
 /** @type {Counter[]} */
@@ -139,13 +139,21 @@ export default {
         console.log(`create counter ${options.name}`, options);
 
         const outputType = this.getOutputType(options.output);
+        const outputFn = (stats, trades) => eval(options.output);
 
         let counter;
 
-        if (outputType === false) {
-          counter = new Counter((stats, trades) => eval(options.output), options.period, false);
+        if (typeof outputType === 'number') {
+          console.log('instanciate counter with model', new Array(outputType).fill(0), options.output)
+          counter = new MultiCounter(outputFn, {
+            period: options.period,
+            model: new Array(outputType).fill(0)
+          });
         } else {
-          counter = new MultiCounter((stats, trades) => eval(options.output), options.period, false, new );
+          console.log('instanciate single counter', options.output)
+          counter = new Counter(outputFn, {
+            period: options.period,
+          });
         }
 
         counter.name = options.name;

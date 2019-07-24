@@ -70,7 +70,7 @@
     },
     {
       "name": "1H LIQUIDATIONS",
-      "output": "var output = 0;\nfor (var i=0; i<trades.length; i++) {\n\tif (trades[i].liquidation)\n\t\toutput += trades[i].price * trades[i].size\n}\noutput;",
+      "output": "var output = [0, 0];\nfor (var i=0; i<trades.length; i++) {\n\tif (trades[i].liquidation)\n\t\toutput[trades[i].side === 'buy' ? 1 : 0] += trades[i].price * trades[i].size\n}\noutput;",
       "enabled": false,
       "period": 3600000
     },

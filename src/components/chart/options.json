@@ -16,7 +16,7 @@
                 "labelBackgroundColor": "red",
                 "labelVisible": true
             },
-            "mode": 2
+            "mode": 1
         },
         "layout": {
             "backgroundColor": "#171b29",
@@ -32,6 +32,7 @@
             }
         },
         "timeScale": {
+            "barSpacing": 5,
             "rightOffset": 12,
             "fixLeftEdge": true,
             "lockVisibleTimeRangeOnResize": true,
@@ -40,7 +41,7 @@
             "borderColor": "rgba(255, 255, 255, .2)",
             "visible": true,
             "timeVisible": true,
-            "secondsVisible": false
+            "secondsVisible": true
         },
         "priceScale": {
             "position": "right",
@@ -68,9 +69,8 @@
             "borderVisible": false,
             "upColor": "rgb(195, 168, 122)",
             "downColor": "rgb(193, 64, 71)",
-            "wickColor": "rgba(224, 190, 148, .5)",
-            "wickUpColor": "rgba(195, 168, 122, .5)",
-            "wickDownColor": "rgba(224, 91, 95, .5)"
+            "wickUpColor": "rgba(223, 195, 148, .8)",
+            "wickDownColor": "rgba(224, 91, 95, .8)"
         }
     }
 }
