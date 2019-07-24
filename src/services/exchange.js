@@ -32,8 +32,6 @@ class Exchange extends EventEmitter {
         +new Date() - storage.timestamp < 1000 * 60 * 60 * 24 * 7 &&
         (this.id !== 'okex' || storage.timestamp > 1560235687982)
       ) {
-        console.info(`[${this.id}] reading stored products`)
-
         this.products = storage.data
 
         if (

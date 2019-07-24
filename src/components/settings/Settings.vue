@@ -196,56 +196,54 @@
           Stats <i class="icon-up"></i>
         </div>
         <div
-          class="settings-stats mb8 settings__activable"
+          class="settings-stats mb8 settings__activable column mb8"
           :class="{ active: showStats }"
         >
-          <div class="column mb8">
-            <div class="form-group column__tight">
-              <label
-                class="checkbox-control -on-off checkbox-control-input flex-right"
-                v-tippy="{ placement: 'bottom' }"
-                title="Enable stats"
-              >
-                <input
-                  type="checkbox"
-                  class="form-control"
-                  :checked="showStats"
-                  @change="$store.commit('settings/TOGGLE_STATS', $event.target.checked)"
-                />
-                <div></div>
-              </label>
-            </div>
-            <div class="form-group column__fill">
-              <div class="column">
-                <div class="form-group column__fill flex-center">Custom stats</div>
-                <div class="form-group column__tight">
-                  <button class="btn -blue" @click="$store.commit('settings/CREATE_STAT'), $store.dispatch('app/openModal', { name: 'stat', id: statsCounters.length - 1 })">
-                    <i class="icon-add mr4"></i> add
-                  </button>
-                </div>
+          <div class="form-group column__tight">
+            <label
+              class="checkbox-control -on-off checkbox-control-input flex-right"
+              v-tippy="{ placement: 'bottom' }"
+              title="Enable stats"
+            >
+              <input
+                type="checkbox"
+                class="form-control"
+                :checked="showStats"
+                @change="$store.commit('settings/TOGGLE_STATS', $event.target.checked)"
+              />
+              <div></div>
+            </label>
+          </div>
+          <div class="form-group column__fill">
+            <div class="column">
+              <div class="form-group column__fill flex-center">Custom stats</div>
+              <div class="form-group column__tight">
+                <button class="btn -blue" @click="$store.commit('settings/CREATE_STAT'), $store.dispatch('app/openModal', { name: 'stat', id: statsCounters.length - 1 })">
+                  <i class="icon-add mr4"></i> add
+                </button>
               </div>
-              <div v-for="(counter, index) in statsCounters" :key="index" class="column mt8">
-                <div class="form-group column__tight">
-                  <label
-                    class="checkbox-control -on-off checkbox-control-input flex-right"
-                    v-tippy="{ placement: 'bottom' }"
-                    title="Enable counter"
-                  >
-                    <input
-                      type="checkbox"
-                      class="form-control"
-                      :checked="counter.enabled"
-                      @change="$store.dispatch('settings/updateStat', { index: index, prop: 'enabled', value: $event.target.checked })"
-                    />
-                    <div></div>
-                  </label>
-                </div>
-                <div class="form-group column__fill column__center">
-                  {{ counter.name }}
-                </div>
-                <div class="form-group column__tight">
-                  <button class="btn -green" @click="$store.dispatch('app/openModal', { name: 'stat', id: index })"><i class="icon-edit"></i></button>
-                </div>
+            </div>
+            <div v-for="(counter, index) in statsCounters" :key="index" class="column mt8">
+              <div class="form-group column__tight">
+                <label
+                  class="checkbox-control -on-off checkbox-control-input flex-right"
+                  v-tippy="{ placement: 'bottom' }"
+                  title="Enable counter"
+                >
+                  <input
+                    type="checkbox"
+                    class="form-control"
+                    :checked="counter.enabled"
+                    @change="$store.dispatch('settings/updateStat', { index: index, prop: 'enabled', value: $event.target.checked })"
+                  />
+                  <div></div>
+                </label>
+              </div>
+              <div class="form-group column__fill column__center">
+                {{ counter.name }}
+              </div>
+              <div class="form-group column__tight">
+                <button class="btn -green" @click="$store.dispatch('app/openModal', { name: 'stat', id: index })"><i class="icon-edit"></i></button>
               </div>
             </div>
           </div>
@@ -338,186 +336,6 @@
             </label>
           </div>
           <div class="column__fill">
-            <div class="form-group mb8">
-              <label
-                class="checkbox-control flex-left"
-                v-tippy
-                title="Gridlines (horizontal tick lines)"
-              >
-                <input
-                  type="checkbox"
-                  class="form-control"
-                  :checked="chartGridlines"
-                  @change="
-                    $store.commit('settings/TOGGLE_CHART_GRID', $event.target.checked)
-                  "
-                />
-                <div></div>
-                <span @click.stop.prevent
-                  >Horizontal ticks (every
-                  <editable
-                    :content="chartGridlinesGap"
-                    @output="$store.commit('settings/SET_CHART_GRID_GAP', $event)"
-                  ></editable>
-                  px)</span
-                >
-              </label>
-            </div>
-            <div class="form-group mb8">
-              <label
-                class="checkbox-control flex-left"
-                v-tippy
-                title="Pad chart"
-              >
-                <input
-                  type="checkbox"
-                  class="form-control"
-                  :checked="chartPadding"
-                  @change="
-                    $store.commit(
-                      'SET_CHART_PADDING',
-                      $event.target.checked ? 0.05 : 0
-                    )
-                  "
-                />
-                <div></div>
-                <span @click.stop.prevent
-                  >Add
-                  <editable
-                    :content="(chartPadding * 100).toFixed(2)"
-                    @output="
-                      $store.commit('settings/SET_CHART_PADDING', ($event || 0) / 100)
-                    "
-                  ></editable>
-                  % margin on the right</span
-                >
-              </label>
-            </div>
-            <div class="form-group mb8">
-              <label
-                class="checkbox-control flex-left"
-                v-tippy
-                title="Show price as candlestick instead of line"
-              >
-                <input
-                  type="checkbox"
-                  class="form-control"
-                  :checked="chartCandlestick"
-                  @change="
-                    $store.commit('settings/TOGGLE_CANDLESTICK', $event.target.checked)
-                  "
-                />
-                <div></div>
-                <span>Enable candlestick</span>
-              </label>
-            </div>
-            <div class="form-group mb8">
-              <label
-                class="checkbox-control flex-left"
-                v-tippy
-                title="Show liquidation volume bars"
-              >
-                <input
-                  type="checkbox"
-                  class="form-control"
-                  :checked="chartLiquidations"
-                  @change="
-                    $store.commit('settings/TOGGLE_LIQUIDATIONS', $event.target.checked)
-                  "
-                />
-                <div></div>
-                <span>Liquidation bars</span>
-              </label>
-            </div>
-            <div class="form-group mb8">
-              <label
-                class="checkbox-control flex-left"
-                v-tippy
-                title="Toggle Volume (buys / sells)"
-              >
-                <input
-                  type="checkbox"
-                  class="form-control"
-                  :checked="chartVolume"
-                  @change="$store.commit('settings/TOGGLE_VOLUME_SERIE', $event.target.checked)"
-                />
-                <div></div>
-                <span @click.stop.prevent>Volume</span>
-              </label>
-              <div v-if="chartVolume" class="settings-chart__sub-settings">
-                <div>
-                  only sum trades above <i class="icon-quote"></i>
-                  <editable
-                    :content="chartVolumeThreshold"
-                    @output="$store.commit('settings/SET_VOLUME_SERIE_THRESHOLD', $event)"
-                  ></editable>
-                </div>
-                <div>
-                  serie opacity
-                  <input
-                    type="range"
-                    min="0"
-                    max="1"
-                    step=".01"
-                    :value="chartVolumeOpacity"
-                    @change="
-                      $store.commit('settings/SET_VOLUME_BAR_OPACITY', $event.target.value)
-                    "
-                  />
-                </div>
-              </div>
-            </div>
-            <div class="form-group mb8">
-              <label
-                class="checkbox-control flex-left"
-                v-tippy
-                title="Toggle Price Simple Moving Average"
-              >
-                <input
-                  type="checkbox"
-                  class="form-control"
-                  :checked="chartSma"
-                  @change="$store.commit('settings/TOGGLE_PRICE_SMA', $event.target.checked)"
-                />
-                <div></div>
-                <span @click.stop.prevent>Price SMA</span>
-              </label>
-              <div v-if="chartSma" class="settings-chart__sub-settings">
-                period
-                <editable
-                  :content="chartSmaLength"
-                  @output="$store.commit('settings/SET_PRICE_SMA_PERIOD', $event)"
-                ></editable>
-              </div>
-            </div>
-            <div class="form-group mb8">
-              <label
-                class="checkbox-control flex-left"
-                v-tippy
-                title="Toggle Volume (buys / sells) Exponential Moving Average"
-              >
-                <input
-                  type="checkbox"
-                  class="form-control"
-                  :checked="chartVolumeAverage"
-                  @change="
-                    $store.commit('settings/TOGGLE_VOLUME_AVERAGE', $event.target.checked)
-                  "
-                />
-                <div></div>
-                <span @click.stop.prevent>Volume EMA</span>
-              </label>
-              <div
-                v-if="chartVolumeAverage"
-                class="settings-chart__sub-settings"
-              >
-                period
-                <editable
-                  :content="chartVolumeAverageLength"
-                  @output="$store.commit('settings/SET_VOLUME_AVERAGE_PERIOD', $event)"
-                ></editable>
-              </div>
-            </div>
             <div class="form-group mb8">
               <label
                 class="checkbox-control flex-left"
@@ -644,7 +462,7 @@
                 @change="$store.commit('settings/TOGGLE_LIQUIDATIONS_ONLY', $event.target.checked)"
               />
               <div></div>
-              <span><strong>ONLY</strong> show liquidations</span>
+              <span>Only list liquidations</span>
             </label>
           </div>
         </div>
@@ -806,7 +624,7 @@ export default {
         })
 
       if (counters.filter((a) => isNaN(a)).length) {
-        socket.$emit('notice', {
+        this.$store.dispatch('app/showNotice', {
           type: 'error',
           title: `Invalid counter`,
           message: `Your counters (${value}) contains invalid steps.`,
@@ -1165,7 +983,7 @@ export default {
   }
 
   .settings__activable {
-    .form-group {
+    > div {
       opacity: 0.2;
 
       &:first-child {
@@ -1173,10 +991,8 @@ export default {
       }
     }
 
-    &.active {
-      .form-group {
-        opacity: 1;
-      }
+    &.active > div {
+      opacity: 1;
     }
   }
 

@@ -1,0 +1,77 @@
+.notices {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  display: flex;
+  margin: 20px;
+  flex-direction: column;
+  flex-wrap: wrap;
+  pointer-events: none;
+}
+
+.notice {
+  display: flex;
+  color: white;
+  cursor: pointer;
+  flex-wrap: wrap;
+  padding: 8px 10px;
+  border-radius: 2px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.05), 0 5px 20px rgba(0, 0, 0, 0.1);
+  width: auto;
+  flex-grow: 0;
+  flex-basis: auto;
+  margin-right: auto;
+  margin-bottom: 10px;
+  pointer-events: all;
+
+  &__message {
+    flex-basis: 100%;
+    font-size: 70%;
+    margin: 5px 0 0;
+    line-height: 1.4;
+  }
+
+  &__title {
+    flex-grow: 1;
+  }
+
+  &__icon {
+    flex-basis: auto;
+    margin-right: 5px;
+    font-size: 18px;
+  }
+
+  &.-error {
+    background-color: $red;
+
+    .notice__icon:before {
+      content: unicode($icon-cross);
+    }
+  }
+
+  &.-warning {
+    background-color: $orange;
+
+    .notice__icon:before {
+      content: unicode($icon-warning);
+    }
+  }
+
+  &.-success {
+    background-color: $green;
+
+    .notice__icon:before {
+      content: unicode($icon-check);
+    }
+  }
+
+  &.-info {
+    background-color: $blue;
+
+    .notice__icon:before {
+      content: unicode($icon-info);
+    }
+  }
+}

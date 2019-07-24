@@ -23,10 +23,6 @@ export function clear() {
   currentTick.rendered = true
 
   for (let i = 0; i < activeSeries.length; i++) {
-    if (typeof activeSeries[i].linkedTo !== 'undefined') {
-      continue;
-    }
-
     const serie = activeSeries[i]
 
     currentTick.series[serie.id] = {

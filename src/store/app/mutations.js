@@ -6,12 +6,12 @@ export default {
       Vue.set(this.state.settings.exchanges, exchange, {})
     }
 
-    const index = state.actives.indexOf('exchange');
+    const index = state.actives.indexOf(exchange)
 
     if (active && index === -1) {
-      state.actives.push(exchange);
+      state.actives.push(exchange)
     } else if (!active && index !== -1) {
-      state.actives.splice(index, 1);
+      state.actives.splice(index, 1)
     }
   },
   TOGGLE_LOADING(state, value) {
@@ -30,9 +30,23 @@ export default {
     const index = state.series.indexOf(id)
 
     if (index !== -1) {
-      state.series.splice(index, 1);
+      state.series.splice(index, 1)
     } else {
-      state.series.push(id);
+      state.series.push(id)
     }
-  }
+  },
+  CREATE_NOTICE(state, notice) {
+    state.notices.push(notice)
+  },
+  REMOVE_NOTICE(state, notice) {
+    const index = state.notices.indexOf(notice)
+
+    if (index !== -1) {
+      if (notice.hideTimeout) {
+        clearTimeout(notice.hideTimeout)
+      }
+
+      state.notices.splice(index, 1)
+    }
+  },
 }

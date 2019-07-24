@@ -20,7 +20,7 @@ const counters = []
 export default {
   data() {
     return {
-      data: {}
+      data: {},
     }
   },
 
@@ -29,17 +29,15 @@ export default {
       'statsPeriod',
       'statsGraphs',
       'statsCounters',
-      'preferQuoteCurrencySize'
+      'preferQuoteCurrencySize',
     ]),
-    ...mapState('app', [
-      'actives'
-    ]),
+    ...mapState('app', ['actives']),
   },
   created() {
     this.onStoreMutation = this.$store.subscribe((mutation, state) => {
       switch (mutation.type) {
         case 'settings/SET_STAT_NAME':
-          this.renameCounter(mutation.payload.value);
+          this.renameCounter(mutation.payload.value)
           break
 
         case 'settings/TOGGLE_STAT':
@@ -52,13 +50,13 @@ export default {
 
         case 'settings/SET_STAT_PERIOD':
         case 'settings/SET_STAT_OUTPUT':
-          this.refreshCounter(this.statsCounters[mutation.payload.index].name);
-          break;
+          this.refreshCounter(this.statsCounters[mutation.payload.index].name)
+          break
       }
     })
   },
   mounted() {
-    this.prepareCounters();
+    this.prepareCounters()
 
     socket.$on('trades.queued', this.onTrades)
     socket.$on('historical', this.onFetch)
@@ -67,7 +65,7 @@ export default {
     socket.$off('trades.queued', this.onTrades)
     socket.$off('historical', this.onFetch)
 
-    this.clearCounters();
+    this.clearCounters()
 
     this.onStoreMutation()
   },
@@ -77,7 +75,7 @@ export default {
       this.clearCounters()
 
       for (let i = 0; i < this.statsCounters.length; i++) {
-        this.createCounter(this.statsCounters[i]);
+        this.createCounter(this.statsCounters[i])
       }
     },
     onTrades(trades, stats) {
@@ -87,160 +85,185 @@ export default {
         this.$set(this.data, counters[i].name, counters[i].getValue())
       }
     },
-    onFetch(trades, from, to) {
-    },
+    onFetch(trades, from, to) {},
     clearCounters() {
       for (let i = counters.length - 1; i >= 0; i--) {
         if (!counters[i]) {
-          console.log('clearCoutner: warning counter', i, 'doesnt exists');
-          continue;
+          console.log('clearCoutner: warning counter', i, 'doesnt exists')
+          continue
         }
 
-        this.removeCounter(i);
+        this.removeCounter(i)
       }
     },
     removeCounter(index) {
-      const counter = this.getCounter(index);
+      const counter = this.getCounter(index)
 
       if (!counter) {
-        console.log(`[removeCounter] couldnt find counter ${index}`);
-        return;
+        console.log(`[removeCounter] couldnt find counter ${index}`)
+        return
       }
 
-      index = counters.indexOf(counter);
+      index = counters.indexOf(counter)
 
-      console.log(`\tunbind counter ${counter.name} index ${index}`);
-      counter.unbind();
+      console.log(`\tunbind counter ${counter.name} index ${index}`)
+      counter.unbind()
 
-      this.$delete(this.data, counter.name);
+      this.$delete(this.data, counter.name)
 
-      counters.splice(index, 1);
+      counters.splice(index, 1)
     },
     refreshCounter(index) {
-      const counter = this.getCounter(index);
+      const counter = this.getCounter(index)
 
       if (!counter) {
-        console.log(`[refreshCounter] couldnt find counter ${index}`);
-        return;
+        console.log(`[refreshCounter] couldnt find counter ${index}`)
+        return
       }
 
-      const options = this.statsCounters.filter(a => a.name === counter.name)[0];
+      const options = this.statsCounters.filter(
+        (a) => a.name === counter.name
+      )[0]
 
       if (!options) {
-        console.log(`[refreshCounter] couldnt find options for counter ${counter.name}`);
-        return;
+        console.log(
+          `[refreshCounter] couldnt find options for counter ${counter.name}`
+        )
+        return
       }
 
-      this.removeCounter(counter.name);
+      this.removeCounter(counter.name)
       this.createCounter()
     },
     createCounter(options) {
       if (options.enabled && typeof this.data[options.name] === 'undefined') {
-        console.log(`create counter ${options.name}`, options);
+        console.log(`create counter ${options.name}`, options)
 
-        const outputType = this.getOutputType(options.output);
-        const outputFn = (stats, trades) => eval(options.output);
+        const outputType = this.getOutputType(options.output)
+        const outputFn = (stats, trades) => eval(options.output)
 
-        let counter;
+        let counter
 
         if (typeof outputType === 'number') {
-          console.log('instanciate counter with model', new Array(outputType).fill(0), options.output)
+          console.log(
+            'instanciate counter with model',
+            new Array(outputType).fill(0),
+            options.output
+          )
           counter = new MultiCounter(outputFn, {
             period: options.period,
-            model: new Array(outputType).fill(0)
-          });
+            model: new Array(outputType).fill(0),
+          })
         } else {
           console.log('instanciate single counter', options.output)
           counter = new Counter(outputFn, {
             period: options.period,
-          });
+          })
         }
 
-        counter.name = options.name;
+        counter.name = options.name
 
         counters.push(counter)
 
         this.$set(this.data, counter.name, 0)
       } else {
-        console.log(`counter ${options.name} was skipped`, options.enabled ? 'ENABLED' : 'DISABLED', typeof this.data[options.name] !== 'undefined' ? 'ALREADY IN DATA' : 'NOT IN DATA');
+        console.log(
+          `counter ${options.name} was skipped`,
+          options.enabled ? 'ENABLED' : 'DISABLED',
+          typeof this.data[options.name] !== 'undefined'
+            ? 'ALREADY IN DATA'
+            : 'NOT IN DATA'
+        )
       }
     },
     renameCounter(name) {
-      const names = this.statsCounters.map(a => a.name);
-      console.log('rename counter', names, name);
-      let counter;
+      const names = this.statsCounters.map((a) => a.name)
+      console.log('rename counter', names, name)
+      let counter
 
       for (let i = 0; i < counters.length; i++) {
         if (names.indexOf(counters[i].name) === -1) {
-          counter = counters[i];
-          break;
+          counter = counters[i]
+          break
         }
       }
 
       if (!counter) {
-        console.log('no matching counter found');
-        return;
+        console.log('no matching counter found')
+        return
       }
 
-      console.log('rename', counter);
+      console.log('rename', counter)
 
-      this.data[name] = this.data[counter.name];
-      delete this.data[counter.name];
-      counter.name = name;
+      this.data[name] = this.data[counter.name]
+      delete this.data[counter.name]
+      counter.name = name
     },
     getCounter(name) {
       if (typeof name === 'number') {
-        return counters[name];
+        return counters[name]
       }
 
-      let counter;
+      let counter
 
       console.log('getCounterByName', name)
 
       for (let i = 0; i < counters.length; i++) {
         if (counters[i].name === name) {
-          counter = counters[i];
-          break;
+          counter = counters[i]
+          break
         }
       }
 
-      return counter;
+      return counter
     },
     editByName(name) {
-      let index;
+      let index
 
       for (let i = 0; i < this.statsCounters.length; i++) {
         if (this.statsCounters[i].name === name) {
-          index = i;
-          break;
+          index = i
+          break
         }
       }
 
       if (typeof index !== 'number') {
-        return;
+        return
       }
 
       this.$store.dispatch('app/openModal', {
         name: 'stat',
-        id: index
+        id: index,
       })
     },
     getOutputType(fn) {
       var trades = [
-        { "exchange": "binance", "timestamp": 1563897189117, "price": 9975.67, "size": 0.049051, "side": "sell" },
-        { "exchange": "binance", "timestamp": 1563897189120, "price": 9976.86, "size": 0.256507, "side": "buy" },
+        {
+          exchange: 'binance',
+          timestamp: 1563897189117,
+          price: 9975.67,
+          size: 0.049051,
+          side: 'sell',
+        },
+        {
+          exchange: 'binance',
+          timestamp: 1563897189120,
+          price: 9976.86,
+          size: 0.256507,
+          side: 'buy',
+        },
       ]
 
-      var stats = socket.getStatsByTrades(trades);
+      var stats = socket.getStatsByTrades(trades)
 
-      const output = eval(fn);
+      const output = eval(fn)
 
       if (Array.isArray(output)) {
-        return output.length;
+        return output.length
       } else {
-        return false;
+        return false
       }
-    }
+    },
   },
 }
 </script>
@@ -255,7 +278,7 @@ export default {
   .custom-stat {
     display: flex;
     align-items: center;
-    padding: .75em;
+    padding: 0.75em;
     cursor: pointer;
 
     + .custom-stat {
@@ -264,8 +287,8 @@ export default {
 
     &__name {
       opacity: 0.5;
-      letter-spacing: .4px;
-      transition: opacity .2s $easeOutExpo;
+      letter-spacing: 0.4px;
+      transition: opacity 0.2s $easeOutExpo;
     }
 
     &__value {

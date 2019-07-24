@@ -6,11 +6,6 @@
         <span class="icon-quote"></span>
         <span v-html="price || 'SignificantTrades'"></span>
       </div>
-      <dropdown
-        :options="timeframes"
-        :selected="timeframe"
-        @output="setTimeframe(+$event)"
-      ></dropdown>
       <button
         type="button"
         v-if="!isPopupMode"
@@ -19,19 +14,6 @@
         v-tippy="{ placement: 'bottom' }"
       >
         <span class="icon-external-link"></span>
-      </button>
-      <button
-        type="button"
-        :class="{ active: isSnaped }"
-        @click="$store.commit('settings/toggleSnap', !isSnaped)"
-        :title="
-          isSnaped
-            ? 'Disable auto snap'
-            : 'Auto snap chart to the latest candle'
-        "
-        v-tippy="{ placement: 'bottom' }"
-      >
-        <span class="icon-play"></span>
       </button>
       <button
         type="button"
@@ -52,7 +34,6 @@
 
 <script>
 import { mapState } from 'vuex'
-import { ago } from '../utils/helpers'
 
 import socket from '../services/socket'
 
@@ -65,12 +46,7 @@ export default {
   props: ['price'],
   data() {
     return {
-      fetchLabel: 'Fetch timeframe',
-      isPopupMode: window.opener !== null,
-      canFetch: false,
-      showTimeframeDropdown: false,
-      timeframeLabel: '15m',
-      timeframes: {},
+      isPopupMode: window.opener && /^sig/.test(window.name),
       searchOpen: false
     }
   },
@@ -80,63 +56,10 @@ export default {
       'useAudio',
       'showChart',
       'isSnaped',
-      'timeframe',
       'chartRange'
     ]),
   },
-  created() {
-    this._fetchLabel = this.fetchLabel.substr()
-    this.canFetch = socket.canFetch()
-
-    const now = +new Date()
-
-    ;[
-      1000 * 10,
-      1000 * 30,
-      1000 * 60,
-      1000 * 60 * 3,
-    ].forEach((span) => (this.timeframes[span] = ago(now - span)))
-
-    socket.$on('pairing', (pair, canFetch) => {
-      this.canFetch = canFetch && this.showChart
-    })
-
-    socket.$on('fetchStart', () => {
-      //
-    })
-
-    socket.$on('fetchEnd', () => {
-      this.updateTimeframesApproximateContentSize()
-    })
-
-    socket.$on('loadingProgress', (event) => {
-      if (!event || isNaN(event.progress)) {
-        return
-      }
-
-      this.fetchLabel = !Math.floor(this.dashoffset)
-        ? this._fetchLabel
-        : this.sizeOf(event.loaded)
-    })
-
-    this.updateTimeframeLabel()
-    this.updateTimeframesApproximateContentSize()
-  },
   methods: {
-    setTimeframe(timeframe) {
-      document.activeElement.blur()
-
-      this.updateTimeframeLabel(timeframe)
-
-      setTimeout(() => {
-        this.$store.commit('settings/SET_TIMEFRAME', timeframe)
-      }, 50)
-    },
-    updateTimeframeLabel(timeframe) {
-      this.timeframeLabel = ago(
-        +new Date() - (timeframe || this.timeframe)
-      )
-    },
     togglePopup() {
       window.open(
         window.location.href,
@@ -147,38 +70,6 @@ export default {
       setTimeout(() => {
         window.close()
       }, 500)
-    },
-    sizeOf(bytes, si) {
-      var thresh = si ? 1000 : 1024
-      if (Math.abs(bytes) < thresh) {
-        return bytes + ' B'
-      }
-      var units = si
-        ? ['kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
-        : ['KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB']
-      var u = -1
-      do {
-        bytes /= thresh
-        ++u
-      } while (Math.abs(bytes) > thresh && u < units.length - 1)
-      return bytes.toFixed(1) + ' ' + units[u]
-    },
-    updateTimeframesApproximateContentSize() {
-      const now = +new Date()
-      const candleCount = this.chartRange / this.timeframe
-
-      if (socket._fetchedTime && socket._fetchedBytes) {
-        for (let span in this.timeframes) {
-          this.timeframes[span] =
-            '<span>~' +
-            this.sizeOf(
-              socket._fetchedBytes *
-                ((span * candleCount) / socket._fetchedTime)
-            ) +
-            '</span> ' +
-            ago(now - span).trim()
-        }
-      }
     },
     search(query) {
       return socket.exchanges.map(a => a.indexedProducts).reduce((a, b) => {

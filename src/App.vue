@@ -12,12 +12,18 @@
   >
     <StatModal v-if="statModalId !== null" :contextName="'stat'" :contextId="statModalId" />
     <SerieModal v-if="serieModalId !== null" :contextName="'serie'" :contextId="serieModalId" />
-    <ExchangeModal v-if="exchangeModalId !== null" :contextName="'exchange'" :contextId="exchangeModalId" />
+    <ExchangeModal
+      v-if="exchangeModalId !== null"
+      :contextName="'exchange'"
+      :contextId="exchangeModalId"
+    />
 
     <Settings v-if="showSettings" @close="showSettings = false" />
 
     <div class="app__wrapper">
-      <Notices />
+      <div class="notices">
+        <Notice v-for="(notice, index) in notices" :key="index" :notice="notice" />
+      </div>
       <Header :price="price" @toggleSettings="showSettings = !showSettings" />
       <div class="app__layout">
         <div class="app__left" v-if="showChart">
@@ -40,7 +46,7 @@ import { formatPrice, formatAmount } from './utils/helpers'
 
 import socket from './services/socket'
 
-import Notices from './components/Notices.vue'
+import Notice from './components/Notice.vue'
 import Header from './components/Header.vue'
 import Settings from './components/settings/Settings.vue'
 import TradeList from './components/TradeList.vue'
@@ -55,7 +61,7 @@ import StatModal from './components/settings/modals/StatModal.vue'
 
 export default {
   components: {
-    Notices,
+    Notice,
     Header,
     Settings,
     TradeList,
@@ -95,7 +101,8 @@ export default {
       'isLoading',
       'statModalId',
       'serieModalId',
-      'exchangeModalId'
+      'exchangeModalId',
+      'notices',
     ]),
   },
   created() {
@@ -124,7 +131,7 @@ export default {
     fetch('showads.js')
       .then(() => {})
       .catch((response, a) => {
-        socket.$emit('notice', {
+        this.$store.dispatch('app/showNotice', {
           type: 'error',
           title: `Disable your AdBlocker`,
           message: `Some adblockers may block access to exchanges api.\nMake sure to turn it off, you wont find any ads here ever :-)`,
@@ -256,4 +263,5 @@ export default {
 @import './assets/sass/button';
 @import './assets/sass/autocomplete';
 @import './assets/sass/modal';
+@import './assets/sass/notice';
 </style>

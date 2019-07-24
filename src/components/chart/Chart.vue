@@ -1,6 +1,7 @@
 <template>
   <div id="chart" class="chart">
-    <Controls ref="controls" />
+    <ChartSeries />
+    <ChartControls />
     <div ref="chart" class="chart__canvas"></div>
   </div>
 </template>
@@ -28,16 +29,18 @@ import {
   newTick,
   updateTickSerie,
   clearTickSerie,
-  redrawTick
+  redrawTick,
 } from './ticker'
 
 import adapters from './adapters'
 
-import Controls from './Controls.vue'
+import ChartSeries from './ChartSeries.vue'
+import ChartControls from './ChartControls.vue'
 
 export default {
   components: {
-    Controls
+    ChartSeries,
+    ChartControls,
   },
   data() {
     return {
@@ -48,8 +51,14 @@ export default {
     }
   },
   computed: {
-    ...mapState('settings', ['pair', 'timeframe', 'exchanges', 'series', 'seriesOptions']),
-    ...mapState('app', ['actives'])
+    ...mapState('settings', [
+      'pair',
+      'timeframe',
+      'exchanges',
+      'series',
+      'seriesOptions',
+    ]),
+    ...mapState('app', ['actives']),
   },
   created() {
     this.onStoreMutation = this.$store.subscribe((mutation, state) => {
@@ -58,6 +67,10 @@ export default {
           setTimeout(() => {
             chart.resize(this.$el.clientHeight, this.$el.clientWidth)
           })
+          break
+        case 'settings/SET_TIMEFRAME':
+          console.log('[chart] onStoreMutation SET_TIMEFRAME', mutation.payload)
+          this.fetch()
           break
       }
     })
@@ -68,18 +81,18 @@ export default {
 
     // create candlestick serie
     for (let i = 0; i < this.series.length; i++) {
-      const args = [adapters[this.series[i].adapter]];
+      const args = [adapters[this.series[i].adapter]]
 
       if (this.series[i].linkedTo) {
         args.push(getSerieById(this.series[i].linkedTo))
       }
 
-      console.log('create serie', this.series[i], args);
+      console.log('create serie', this.series[i], args)
 
-      createSerie.apply(this, args);
+      createSerie.apply(this, args)
     }
 
-    socket.fetchRange(this.timeframe * 100)
+    this.fetch()
 
     // listen to fetch
     socket.$on('historical', this.onFetch)
@@ -102,12 +115,22 @@ export default {
   },
   methods: {
     onFetch(trades) {
-      clear();
-      populateTick(trades);
+      clear()
+      populateTick(trades)
     },
 
     onTrades(trades) {
-      populateTick(trades);
+      populateTick(trades)
+    },
+
+    fetch() {
+      socket.fetchRange(this.timeframe * 100).then((e) => {
+        if (!e) {
+          // was already fetched
+          console.log('was already fetched')
+          this.onFetch(socket.trades)
+        }
+      })
     },
   },
 }

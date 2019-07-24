@@ -83,7 +83,7 @@ const emitter = new Vue({
     },
   },
   created() {
-    window.getTrades = () => this.trades;
+    window.getTrades = () => this.trades
 
     this.exchanges.forEach((exchange) => {
       exchange.on('trades', (trades) => {
@@ -97,7 +97,7 @@ const emitter = new Vue({
       })
 
       exchange.on('open', (event) => {
-        console.log(`[socket.exchange.on.open] ${exchange.id} opened`)
+        console.log(`[socket.exchange.on.open] ${exchange.id} connected`)
 
         this.$emit('connected', exchange.id)
       })
@@ -116,7 +116,6 @@ const emitter = new Vue({
       })
 
       exchange.on('match', (pair) => {
-        console.log(`[socket.exchange.on.match] ${exchange.id} matched ${pair}`)
         store.commit('settings/SET_EXCHANGE_MATCH', {
           exchange: exchange.id,
           match: pair,
@@ -135,11 +134,11 @@ const emitter = new Vue({
     if (module.hot) {
       module.hot.dispose(() => {
         for (let i = 0; i < this.exchanges.length; i++) {
-          this.exchanges[i].disconnect();
+          this.exchanges[i].disconnect()
         }
 
-        clearTimeout(this._connectExchangesTimeout);
-        clearInterval(this._processQueueInterval);
+        clearTimeout(this._connectExchangesTimeout)
+        clearInterval(this._processQueueInterval)
       })
     }
   },
@@ -166,15 +165,20 @@ const emitter = new Vue({
         console.info(`[sockets] PROXY_URL = ${this.PROXY_URL}`)
       }
 
-      this._connectExchangesTimeout = setTimeout(this.connectExchanges.bind(this))
+      this._connectExchangesTimeout = setTimeout(
+        this.connectExchanges.bind(this)
+      )
 
-      this._processQueueInterval = setInterval(this.processQueue.bind(this), 1000)
+      this._processQueueInterval = setInterval(
+        this.processQueue.bind(this),
+        1000
+      )
     },
     connectExchanges(pair = null) {
       this.disconnectExchanges()
 
       if (!pair && !this.pair) {
-        return this.$emit('notice', {
+        return store.dispatch('app/showNotice', {
           id: `server_status`,
           type: 'error',
           title: `No pair`,
@@ -191,7 +195,7 @@ const emitter = new Vue({
 
       console.log(`[socket.connect] connecting to ${this.pair}`)
 
-      this.$emit('notice', {
+      store.dispatch('app/showNotice', {
         id: `server_status`,
         type: 'info',
         title: `Loading`,
@@ -204,7 +208,7 @@ const emitter = new Vue({
         let validExchanges = this.exchanges.filter((exchange) => exchange.valid)
 
         if (!validExchanges.length) {
-          this.$emit('notice', {
+          store.dispatch('app/showNotice', {
             id: `server_status`,
             type: 'error',
             title: `No match`,
@@ -214,7 +218,7 @@ const emitter = new Vue({
           return
         }
 
-        this.$emit('notice', {
+        store.dispatch('app/showNotice', {
           id: `server_status`,
           type: 'info',
           title: `Loading`,
@@ -237,7 +241,7 @@ const emitter = new Vue({
           (exchange) => !this.exchangesSettings[exchange.id].disabled
         )
 
-        this.$emit('notice', {
+        store.dispatch('app/showNotice', {
           id: `server_status`,
           type: 'info',
           title: `Loading`,
@@ -324,7 +328,7 @@ const emitter = new Vue({
 
       this.trades = this.trades.concat(output)
 
-      const stats = this.getStatsByTrades(output);
+      const stats = this.getStatsByTrades(output)
 
       this.queue.splice(0, this.queue.length)
 
@@ -337,10 +341,10 @@ const emitter = new Vue({
         buyAmount: 0,
         sellCount: 0,
         sellSize: 0,
-        sellAmount: 0
+        sellAmount: 0,
       }
 
-      let i = trades.length;
+      let i = trades.length
 
       while (i--) {
         if (this.actives.indexOf(trades[i].exchange) === -1) {
@@ -358,7 +362,7 @@ const emitter = new Vue({
         }
       }
 
-      return stats;
+      return stats
     },
     compressTrades(trades) {
       const sums = {}
@@ -366,17 +370,23 @@ const emitter = new Vue({
       const output = []
 
       for (let i = 0; i < trades.length; i++) {
-        if (trades[i].price * trades[i].size < 100000) {
-          const id = (Math.floor(trades[i].timestamp / 1000) * 1000) + trades[i].exchange + trades[i].side;
+        if (
+          trades[i].price * trades[i].size <
+          store.state.settings.thresholds[0].amount
+        ) {
+          const id =
+            Math.floor(trades[i].timestamp / 1000) * 1000 +
+            trades[i].exchange +
+            trades[i].side
 
           if (groups[id]) {
-            output[groups[id]].count++;
+            output[groups[id]].count++
             output[groups[id]].price += +trades[i].price
             output[groups[id]].size += +trades[i].size
 
             sums[id] += trades[i].price * trades[i].size
 
-            continue;
+            continue
           } else {
             // index of the group
             groups[id] = output.length
@@ -384,17 +394,18 @@ const emitter = new Vue({
             // init group count
             trades[i].count = 1
 
-            sums[id] = trades[i].price * trades[i].size;
+            sums[id] = trades[i].price * trades[i].size
           }
         }
 
         output.push(trades[i])
       }
 
-      const groupIds = Object.keys(groups);
+      const groupIds = Object.keys(groups)
 
       for (let i = 0; i < groupIds.length; i++) {
-        output[groups[groupIds[i]]].price = sums[groupIds[i]] / output[groups[groupIds[i]]].size
+        output[groups[groupIds[i]]].price =
+          sums[groupIds[i]] / output[groups[groupIds[i]]].size
       }
 
       return output
@@ -510,13 +521,25 @@ const emitter = new Vue({
 
             switch (response.data.format) {
               case 'trade':
-                data = this.compressTrades(data.map((a) => ({
-                  exchange: a[0],
-                  timestamp: +a[1],
-                  price: +a[2],
-                  size: +a[3],
-                  side: +a[4] > 0 ? 'buy' : 'sell'
-                })))
+                const beforeLength = data.length
+
+                data = this.compressTrades(
+                  data.map((a) => ({
+                    exchange: a[0],
+                    timestamp: +a[1],
+                    price: +a[2],
+                    size: +a[3],
+                    side: +a[4] > 0 ? 'buy' : 'sell',
+                  }))
+                )
+
+                console.log(
+                  'compression result',
+                  data.length,
+                  '(was ',
+                  beforeLength,
+                  ')'
+                )
 
                 if (!this.trades.length) {
                   console.log(
@@ -530,7 +553,8 @@ const emitter = new Vue({
                   )
                   const append = data.filter(
                     (trade) =>
-                      trade.timestamp >= this.trades[this.trades.length - 1].timestamp
+                      trade.timestamp >=
+                      this.trades[this.trades.length - 1].timestamp
                   )
 
                   if (prepend.length) {
@@ -567,7 +591,7 @@ const emitter = new Vue({
             this._fetchedMax = true
 
             err &&
-              this.$emit('notice', {
+              store.dispatch('app/showNotice', {
                 type: 'error',
                 title: `Unable to retrieve history`,
                 message:

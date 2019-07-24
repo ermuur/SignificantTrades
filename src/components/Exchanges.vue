@@ -11,10 +11,7 @@
       :class="'-' + id + ' -' + status[id].status"
       @click="$store.commit('settings/TOGGLE_EXCHANGE_VISIBILITY', id)"
     >
-      <div
-        class="exchange__price"
-        :class="{ '-hidden': exchanges[id].hidden }"
-      >
+      <div class="exchange__price" :class="{ '-hidden': exchanges[id].hidden }">
         <span v-html="$root.formatPrice(status[id].price)"></span> &nbsp;
       </div>
     </div>
@@ -57,13 +54,13 @@ export default {
         case 'reloadExchangeState':
           console.log(this.list)
           if (!mutation.payload) {
-            break;
+            break
           }
 
           const active = this.actives.indexOf(mutation.payload) !== -1
           const listed = this.list.indexOf(mutation.payload) !== -1
           if (active && !listed) {
-            console.log('exchanges: list', mutation.payload)
+            console.log('edxchanges: list', mutation.payload)
             this.list.push(mutation.payload)
           } else if (!active && listed) {
             console.log('exchanges: delist', mutation.payload)
@@ -89,7 +86,10 @@ export default {
       for (let i = 0; i < socket.exchanges.length; i++) {
         const id = socket.exchanges[i].id
 
-        if (this.actives.indexOf(socket.exchanges[i].id) === -1 || this.status[id].price === socket.exchanges[i].price) {
+        if (
+          this.actives.indexOf(socket.exchanges[i].id) === -1 ||
+          this.status[id].price === socket.exchanges[i].price
+        ) {
           continue
         }
 
@@ -114,8 +114,9 @@ export default {
         return
       }
 
-      this.list = this.list
-        .sort((a, b) => this.status[a].price - this.status[a].price)
+      this.list = this.list.sort(
+        (a, b) => this.status[a].price - this.status[a].price
+      )
     },
   },
 }

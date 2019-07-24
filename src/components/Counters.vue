@@ -7,15 +7,8 @@
         v-if="!hideIncompleteCounter || index <= completed"
         class="counters__item"
       >
-        <div
-          class="counter__index"
-          v-tippy="{ placement: 'left' }"
-          title="Edit interval"
-        >
-          <editable
-            :content="labels[index]"
-            @output="updateCounterStep(index, $event)"
-          ></editable>
+        <div class="counter__index" v-tippy="{ placement: 'left' }" title="Edit interval">
+          <editable :content="labels[index]" @output="updateCounterStep(index, $event)"></editable>
         </div>
         <div
           class="counter__up"
@@ -31,10 +24,7 @@
         >
           <div v-if="index === 0" class="counter__light"></div>
         </div>
-        <div
-          class="counter__delete icon-cross"
-          @click="deleteCounter(index)"
-        ></div>
+        <div class="counter__delete icon-cross" @click="deleteCounter(index)"></div>
       </li>
     </ul>
     <!-- <div class="counters__add"><i class="icon-add"></i> Add step</div> -->
@@ -60,9 +50,7 @@ export default {
     }
   },
   computed: {
-    ...mapState('app', [
-      'actives',
-    ]),
+    ...mapState('app', ['actives']),
     ...mapState('settings', [
       'pair',
       'thresholds',
@@ -70,7 +58,7 @@ export default {
       'counterPrecision',
       'cumulativeCounters',
       'hideIncompleteCounter',
-      'preferQuoteCurrencySize'
+      'preferQuoteCurrencySize',
     ]),
   },
   created() {
@@ -114,8 +102,12 @@ export default {
   },
   methods: {
     appendTrades(trades, stats) {
-      const upVolume = this.preferQuoteCurrencySize ? stats.sellAmount : stats.sellSize
-      const downVolume = this.preferQuoteCurrencySize ? stats.sellAmount : stats.sellSize
+      const upVolume = this.preferQuoteCurrencySize
+        ? stats.sellAmount
+        : stats.sellSize
+      const downVolume = this.preferQuoteCurrencySize
+        ? stats.sellAmount
+        : stats.sellSize
 
       this.queue[0] += upVolume
       this.queue[1] += downVolume
@@ -225,11 +217,13 @@ export default {
         }
 
         const isBuy = trades[i].side === 'buy'
-        const amount = trades[i].size * (this.preferQuoteCurrencySize ? trades[i].price : 1)
+        const amount =
+          trades[i].size * (this.preferQuoteCurrencySize ? trades[i].price : 1)
 
         if (
           stacks.length &&
-          trades[i].timestamp - stacks[stacks.length - 1][0] < this.counterPrecision
+          trades[i].timestamp - stacks[stacks.length - 1][0] <
+            this.counterPrecision
         ) {
           stacks[stacks.length - 1][isBuy ? 1 : 2] += amount
         } else {
@@ -361,7 +355,10 @@ export default {
         return
       }
 
-      this.$store.commit('settings/SET_COUNTER_VALUE', { index: index, value: null })
+      this.$store.commit('settings/SET_COUNTER_VALUE', {
+        index: index,
+        value: null,
+      })
     },
     getTicksTrades() {
       return socket.ticks

@@ -1,7 +1,7 @@
 <template>
-  <div class="chart-controls">
+  <div class="chart-series">
     <button class="btn -small" @click="clear">clear</button>
-    <ul class="chart-controls__series">
+    <ul class="chart-series__list">
       <li v-for="(serie, index) in series" :key="index">{{ serie }}</li>
     </ul>
   </div>
@@ -10,18 +10,11 @@
 <script>
 import { mapState } from 'vuex'
 
-import { currentTick, activeSeries, chart } from './common'
-
 import { clear } from './ticker'
 
 export default {
   data() {
-    return {
-      tick: null,
-      panning: false,
-      fetching: false,
-      showControls: false,
-    }
+    return {}
   },
   computed: {
     ...mapState('settings', ['pair', 'timeframe', 'exchanges']),
@@ -42,7 +35,7 @@ export default {
 <style lang="scss">
 @import '../../assets/sass/variables';
 
-.chart-controls {
+.chart-series {
   position: absolute;
   top: 1em;
   left: 1em;

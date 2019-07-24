@@ -140,7 +140,7 @@ export default {
       }, 3000);
 
       this.exchange.refreshProducts().then(() => {
-        socket.$emit('notice', {
+        this.$store.dispatch('app/showNotice', {
           type: 'info',
           title: `${this.exchange.id}'s products refreshed`,
           message: `${this.exchange.indexedProducts.length} products was saved`,
