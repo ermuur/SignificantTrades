@@ -1,4 +1,5 @@
 export default {
+  id: 'price',
   type: 'candlestick',
   options: {},
 
@@ -48,6 +49,7 @@ export default {
 
   // when candle is rendered
   onRender: (serieData) => {
+    console.log('render price');
     const exchanges = Object.keys(serieData.exchanges)
 
     let opens = []

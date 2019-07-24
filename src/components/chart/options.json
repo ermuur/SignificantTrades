@@ -50,7 +50,7 @@
         }
     },
     "series": {
-        "price": {
+        "candlestick": {
             "baseLineStyle": false,
             "lastValueVisible": true,
             "priceLineVisible": true,
@@ -71,6 +71,9 @@
             "downColor": "rgb(193, 64, 71)",
             "wickUpColor": "rgba(223, 195, 148, .8)",
             "wickDownColor": "rgba(224, 91, 95, .8)"
+        },
+        "line": {
+          "crosshairMarkerVisible": false
         }
     }
 }

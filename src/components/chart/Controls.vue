@@ -2,16 +2,7 @@
   <div class="chart-controls">
     <button class="btn -small" @click="clear">clear</button>
     <ul class="chart-controls__series">
-      <li v-for="(serie, index) in series" :key="serie.id" class="chart-serie">
-        <div class="chart-serie__name">{{ serie }}</div>
-        <ul class="chart-serie__controls">
-          <li>
-            <button>
-              <i class="icon-eye"></i>
-            </button>
-          </li>
-        </ul>
-      </li>
+      <li v-for="(serie, index) in series" :key="index">{{ serie }}</li>
     </ul>
   </div>
 </template>
@@ -33,13 +24,8 @@ export default {
     }
   },
   computed: {
-    ...mapState(['pair', 'timeframe', 'actives', 'exchanges']),
-    series: () => {
-      return activeSeries.map((serie) => {
-        console.log('recompute', serie.id)
-        return serie.id
-      })
-    },
+    ...mapState('settings', ['pair', 'timeframe', 'exchanges']),
+    ...mapState('app', ['actives', 'series']),
   },
   created() {},
   mounted() {},
@@ -66,29 +52,9 @@ export default {
   ul {
     padding: 0;
     list-style: none;
-  }
-}
 
-.chart-serie {
-  display: flex;
-
-  &__controls {
-    button {
-      appearance: none;
-      -webkit-appearance: none;
-      border: 0;
-      background: 0;
-      color: white;
+    li {
       cursor: pointer;
-      opacity: 0.8;
-
-      &.-disabled {
-        opacity: 0.3;
-      }
-
-      &:hover {
-        opacity: 1;
-      }
     }
   }
 }

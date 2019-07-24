@@ -1,6 +1,6 @@
 <template>
   <div id="chart" class="chart">
-    <Controls />
+    <Controls ref="controls" />
     <div ref="chart" class="chart__canvas"></div>
   </div>
 </template>
@@ -17,6 +17,7 @@ import {
   activeSeries,
   createChart,
   createSerie,
+  getSerieById,
   chart,
 } from './common'
 
@@ -30,7 +31,7 @@ import {
   redrawTick
 } from './ticker'
 
-import priceSerieAdapter from './adapters/price'
+import adapters from './adapters'
 
 import Controls from './Controls.vue'
 
@@ -47,7 +48,7 @@ export default {
     }
   },
   computed: {
-    ...mapState('settings', ['pair', 'timeframe', 'exchanges']),
+    ...mapState('settings', ['pair', 'timeframe', 'exchanges', 'series', 'seriesOptions']),
     ...mapState('app', ['actives'])
   },
   created() {
@@ -66,7 +67,17 @@ export default {
     createChart(this.$refs.chart, chartOptions)
 
     // create candlestick serie
-    createSerie('price', priceSerieAdapter)
+    for (let i = 0; i < this.series.length; i++) {
+      const args = [adapters[this.series[i].adapter]];
+
+      if (this.series[i].linkedTo) {
+        args.push(getSerieById(this.series[i].linkedTo))
+      }
+
+      console.log('create serie', this.series[i], args);
+
+      createSerie.apply(this, args);
+    }
 
     socket.fetchRange(this.timeframe * 100)
 

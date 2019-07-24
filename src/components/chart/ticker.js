@@ -1,4 +1,4 @@
-import { seriesOptions, currentTick, activeSeries, chart } from './common'
+import { currentTick, activeSeries, removeSerie } from './common'
 import store from '../../store'
 
 export function reset() {
@@ -11,13 +11,7 @@ export function reset() {
       continue
     }
 
-    chart.removeSeries(serie.api)
-
-    if (currentTick.series[serie.id]) {
-      delete currentTick.series[serie.id]
-    }
-
-    activeSeries.splice(i, 1)
+    removeSerie(serie)
   }
 }
 
@@ -29,6 +23,10 @@ export function clear() {
   currentTick.rendered = true
 
   for (let i = 0; i < activeSeries.length; i++) {
+    if (typeof activeSeries[i].linkedTo !== 'undefined') {
+      continue;
+    }
+
     const serie = activeSeries[i]
 
     currentTick.series[serie.id] = {
@@ -37,10 +35,8 @@ export function clear() {
       empty: true
     }
 
-    if (typeof serie.adapter === 'object') {
-      if (typeof serie.adapter.onInit === 'function') {
-        serie.adapter.onInit(currentTick.series[serie.id])
-      }
+    if (typeof serie.adapter.onInit === 'function') {
+      serie.adapter.onInit(currentTick.series[serie.id])
     }
 
     serie.api.setData([])
@@ -59,6 +55,10 @@ export function populateTick(trades) {
     }
 
     for (let j = 0; j < activeSeries.length; j++) {
+      if (typeof activeSeries[j].linkedTo !== 'undefined') {
+        continue;
+      }
+
       const serie = activeSeries[j]
 
       updateTickSerie(serie, trade)
@@ -80,7 +80,17 @@ export function newTick(timestamp) {
     Math.floor(timestamp / store.state.settings.timeframe) * store.state.settings.timeframe
 
   for (let i = 0; i < activeSeries.length; i++) {
+    if (typeof activeSeries[i].linkedTo !== 'undefined') {
+      continue;
+    }
+
     clearTickSerie(activeSeries[i])
+
+    if (activeSeries[i].linked) {
+      for (let j = 0; j < activeSeries[i].linked.length; j++) {
+        clearTickSerie(activeSeries[i].linked[j])
+      }
+    }
   }
 
   currentTick.rendered = false
@@ -88,11 +98,7 @@ export function newTick(timestamp) {
 
 /** @param {{id: string, api: TV.ISeriesApi<area>, adapter: string | Object}[]} serie */
 export function updateTickSerie(serie, trade) {
-  if (typeof serie.adapter === 'object') {
-    serie.adapter.onTrade(trade, currentTick.series[serie.id])
-  } else {
-    currentTick.series[serie.id].value += trade[serie.adapter]
-  }
+  serie.adapter.onTrade(trade, currentTick.series[serie.id])
 
   currentTick.series[serie.id].rendered = false
 
@@ -101,20 +107,33 @@ export function updateTickSerie(serie, trade) {
 
 /** @param {{id: string, api: TV.ISeriesApi<area>, adapter: string | Function}[]} serie */
 export function clearTickSerie(serie) {
-  if (typeof serie.adapter === 'object') {
-    currentTick.series[serie.id].value = serie.adapter.onTick(
-      currentTick.series[serie.id]
-    )
-  } else if (
-    typeof serie.adapter === 'string' &&
-    typeof trade[serie.adapter] !== 'undefined'
-  ) {
-    currentTick.series[serie.id].value = 0
-  } else if (typeof trade[serie.id] !== 'undefined') {
-    currentTick.series[serie.id].value = 0
-  }
+  currentTick.series[serie.id].value = serie.adapter.onTick(
+    currentTick.series[serie.id]
+  )
 
   currentTick.series[serie.id].rendered = false
+}
+
+const renderSerie = (serie) => {
+  const serieAPI = serie.api
+  const serieData = currentTick.series[serie.id]
+
+  if (!serieData || serieData.rendered) {
+    return
+  }
+
+  let value = serie.adapter.onRender(serieData, serie.linkedTo ? currentTick.series[serie.linkedTo.id] : null)
+  value.time = currentTick.timestamp / 1000
+
+  if (serieData.empty) {
+    serieAPI.setData([value]);
+  } else {
+    serieAPI.update(value)
+  }
+
+  serieData.value = value
+  serieData.rendered = true
+  serieData.empty = false
 }
 
 export function redrawTick() {
@@ -123,33 +142,17 @@ export function redrawTick() {
   }
 
   for (let i = 0; i < activeSeries.length; i++) {
-    const serieAPI = activeSeries[i].api
-    const serieData = currentTick.series[activeSeries[i].id]
-
-    if (!serieData || serieData.rendered) {
-      continue
+    if (typeof activeSeries[i].linkedTo !== 'undefined') {
+      continue;
     }
 
-    let value
+    renderSerie(activeSeries[i])
 
-    if (typeof activeSeries[i].adapter === 'object') {
-      value = activeSeries[i].adapter.onRender(serieData)
-      value.time = currentTick.timestamp / 1000
-    } else {
-      value = {
-        time: currentTick.timestamp / 1000,
-        value: serieData.value,
+    if (activeSeries[i].linked) {
+      for (let j = 0; j < activeSeries[i].linked.length; j++) {
+        renderSerie(activeSeries[i].linked[j])
       }
     }
-
-    if (serieData.empty) {
-      serieAPI.setData([value]);
-    } else {
-      serieAPI.update(value)
-    }
-
-    serieData.rendered = true
-    serieData.empty = false
   }
 
   currentTick.rendered = true

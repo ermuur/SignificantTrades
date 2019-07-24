@@ -81,6 +81,20 @@
       "period": 3600000
     }
   ],
+  "series": [
+    {
+      "adapter": "price"
+    },
+    {
+      "adapter": "sma",
+      "linkedTo": "price"
+    }
+  ],
+  "seriesOptions": {
+    "price_sma": {
+      "period": 14
+    }
+  },
   "chartPadding": 0.075,
   "chartGridlines": true,
   "chartGridlinesGap": 80,

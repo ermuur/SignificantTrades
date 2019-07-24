@@ -25,5 +25,14 @@ export default {
   },
   TOGGLE_EXCHANGE_MODAL(state, id) {
     state.exchangeModalId = !isNaN(id) ? id : null
+  },
+  TOGGLE_SERIE(state, id) {
+    const index = state.series.indexOf(id)
+
+    if (index !== -1) {
+      state.series.splice(index, 1);
+    } else {
+      state.series.push(id);
+    }
   }
 }
