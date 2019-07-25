@@ -55,7 +55,8 @@ class Bitmex extends Exchange {
           price: trade.price,
           size: trade.leavesQty / (this.quotedInUSD ? trade.price : 1),
           side: trade.side === 'Buy' ? 'buy' : 'sell',
-          liquidation: true
+          liquidation: true,
+          pair: trade.symbol
         }))
       } else if (json.table === 'trade' && json.action === 'insert') {
         return json.data.map((trade) => ({
@@ -64,6 +65,7 @@ class Bitmex extends Exchange {
           price: trade.price,
           size: trade.size / (this.quotedInUSD ? trade.price : 1),
           side: trade.side === 'Buy' ? 'buy' : 'sell',
+          pair: trade.symbol
         }))
       }
     }

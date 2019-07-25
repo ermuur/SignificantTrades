@@ -31,19 +31,23 @@ class Bitfinex extends Exchange {
   connect() {
     if (!super.connect()) return
 
+    this.channels = [];
+
     this.api = new WebSocket(this.getUrl())
 
     this.api.onmessage = (event) =>
       this.emitTrades(this.formatLiveTrades(JSON.parse(event.data)))
 
     this.api.onopen = (event) => {
-      this.api.send(
-        JSON.stringify({
-          event: 'subscribe',
-          channel: 'trades',
-          symbol: 't' + this.pair,
-        })
-      )
+      for (let i = 0; i < this.pairs.length; i++) {
+        this.api.send(
+          JSON.stringify({
+            event: 'subscribe',
+            channel: 'trades',
+            symbol: 't' + this.pairs[i],
+          })
+        )
+      }
 
       this.emitOpen(event)
     }
@@ -62,6 +66,11 @@ class Bitfinex extends Exchange {
   }
 
   formatLiveTrades(json) {
+    if (json.event === 'subscribed') {
+      this.channels[json.chanId] = json.pair;
+      return
+    }
+
     if (!json || json[1] !== 'te') {
       return
     }
@@ -73,6 +82,7 @@ class Bitfinex extends Exchange {
         price: +json[2][3],
         size: Math.abs(json[2][2]),
         side: json[2][2] < 0 ? 'sell' : 'buy',
+        pair: this.channels[json[0]]
       },
     ]
   }

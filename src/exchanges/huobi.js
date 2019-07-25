@@ -39,19 +39,21 @@ class Huobi extends Exchange {
     this.api.onmessage = event => this.emitTrades(this.formatLiveTrades(event.data))
 
     this.api.onopen = event => {
-      this.api.send(
-        JSON.stringify({
-          sub: "market." + this.pair + ".trade.detail",
-          id: this.pair
-        })
-      )
+      for (let i = 0; i < this.pairs.length; i++) {
+        this.api.send(
+          JSON.stringify({
+            sub: 'market.' + this.pairs[i] + '.trade.detail',
+            id: this.pairs[i]
+          })
+        )
+      }
 
       this.emitOpen(event)
     }
 
     this.api.onclose = this.emitClose.bind(this)
 
-    this.api.onerror = this.emitError.bind(this, { message: "Websocket error" })
+    this.api.onerror = this.emitError.bind(this, { message: 'Websocket error' })
   }
 
   disconnect() {
@@ -63,7 +65,7 @@ class Huobi extends Exchange {
   }
 
   formatLiveTrades(event) {
-    const json = JSON.parse(pako.inflate(event, { to: "string" }))
+    const json = JSON.parse(pako.inflate(event, { to: 'string' }))
 
     if (!json) {
       return
@@ -78,7 +80,8 @@ class Huobi extends Exchange {
         timestamp: trade.ts,
         price: +trade.price,
         size: +trade.amount,
-        side: trade.direction === "buy" ? "buy" : "sell"
+        side: trade.direction === 'buy' ? 'buy' : 'sell',
+        pair: json.ch.substr(7).replace(/\..*/, '')
       }))
     }
   }

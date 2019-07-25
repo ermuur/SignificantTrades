@@ -25,18 +25,22 @@ class Poloniex extends Exchange {
   connect() {
     if (!super.connect()) return
 
+    this.channels = []
+
     this.api = new WebSocket(this.getUrl())
 
     this.api.onmessage = (event) =>
       this.emitTrades(this.formatLiveTrades(JSON.parse(event.data)))
 
     this.api.onopen = (event) => {
-      this.api.send(
-        JSON.stringify({
-          command: 'subscribe',
-          channel: this.pair,
-        })
-      )
+      for (let i = 0; i < this.pairs.length; i++) {
+        this.api.send(
+          JSON.stringify({
+            command: 'subscribe',
+            channel: this.pairs[i],
+          })
+        )
+      }
 
       this.emitOpen(event)
     }
@@ -62,6 +66,11 @@ class Poloniex extends Exchange {
     }
 
     if (json[2] && json[2].length) {
+      if (json[2][0].length === 2 && json[2][0][0] === 'i') {
+        this.channels[json[0]] = json[2][0][1].currencyPair
+        return
+      }
+
       return json[2]
         .filter((result) => result[0] === 't')
         .map((trade) => ({
@@ -70,6 +79,7 @@ class Poloniex extends Exchange {
           price: +trade[3],
           size: +trade[4],
           side: trade[2] > 0 ? 'buy' : 'sell',
+          pair: this.channels[json[0]]
         }))
     }
   }

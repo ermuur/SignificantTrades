@@ -1,4 +1,9 @@
 export default {
+  pairs: [],
+  showSearch: false,
+  currentPrice: null,
+  priceDirection: null,
+  previousPrices: [],
   actives: [],
   series: [],
   notices: [],

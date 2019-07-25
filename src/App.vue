@@ -24,7 +24,14 @@
       <div class="notices">
         <Notice v-for="(notice, index) in notices" :key="index" :notice="notice" />
       </div>
-      <Header :price="price" @toggleSettings="showSettings = !showSettings" />
+      <div v-if="showSearch" ref="searchWrapper" class="app__search" @click="$event.target === $refs.searchWrapper && $store.commit('app/TOGGLE_SEARCH', false)">
+        <Autocomplete
+        :load="search"
+        :selected="pairs"
+        @submit="$store.commit('settings/SET_PAIR', $event.join('+')), $store.commit('app/TOGGLE_SEARCH', false)" />
+      </div>
+      <Header @toggleSettings="showSettings = !showSettings" />
+
       <div class="app__layout">
         <div class="app__left" v-if="showChart">
           <Chart />
@@ -59,6 +66,8 @@ import ExchangeModal from './components/settings/modals/ExchangeModal.vue'
 import SerieModal from './components/settings/modals/SerieModal.vue'
 import StatModal from './components/settings/modals/StatModal.vue'
 
+import Autocomplete from './components/ui/Autocomplete.vue'
+
 export default {
   components: {
     Notice,
@@ -72,6 +81,7 @@ export default {
     ExchangeModal,
     SerieModal,
     StatModal,
+    Autocomplete,
   },
   name: 'app',
   data() {
@@ -97,21 +107,21 @@ export default {
       'preferQuoteCurrencySize',
     ]),
     ...mapState('app', [
+      'pairs',
       'actives',
       'isLoading',
       'statModalId',
       'serieModalId',
       'exchangeModalId',
       'notices',
+      'currentPrice',
+      'priceDirection',
+      'showSearch'
     ]),
   },
   created() {
     this.$root.formatPrice = formatPrice
     this.$root.formatAmount = formatAmount
-
-    socket.$on('pairing', (value) => {
-      this.updatePairCurrency(this.pair)
-    })
 
     this.onStoreMutation = this.$store.subscribe((mutation, state) => {
       switch (mutation.type) {
@@ -119,8 +129,38 @@ export default {
           this.TOGGLE_AUTO_CLEAR(mutation.payload)
           break
         case 'settings/SET_PAIR':
-          socket.connectExchanges(mutation.payload)
+          socket.connectExchanges()
+          this.updatePairCurrency(this.pair)
           break
+        case 'app/UPDATE_PRICE':
+          window.document.title = this.currentPrice
+            .toString()
+            .replace(/<\/?[^>]+(>|$)/g, '')
+          break
+        case 'app/SET_PRICE_DIRECTION':
+          let favicon = document.getElementById('favicon');
+
+          if (favicon) {
+            document.head.removeChild(favicon);
+          }
+
+          favicon = document.createElement('link');
+          favicon.id = 'favicon';
+          favicon.rel = 'shortcut icon';
+          favicon.href = `static/${this.priceDirection}.png`;
+
+          favicon.setAttribute('direction', this.priceDirection);
+
+          document.head.appendChild(favicon);
+
+          break
+        case 'app/TOGGLE_SEARCH':
+          if (this.showSearch) {
+            setTimeout(() => {
+              this.$refs.searchWrapper.querySelector('.autocomplete__input').focus();
+            })
+          }
+          break;
       }
     })
 
@@ -150,6 +190,11 @@ export default {
     this.onStoreMutation()
   },
   methods: {
+    search(query) {
+      return socket.exchanges.map(a => a.indexedProducts).reduce((a, b) => {
+        return a.concat(b);
+      }, []).filter((a, index, arr) => arr.indexOf(a) === index && new RegExp(query, "i").test(a))
+    },
     updatePairCurrency(pair) {
       const name = pair.replace(/\-[\w\d]*$/, '')
 
@@ -206,46 +251,25 @@ export default {
       let price = 0
       let total = 0
 
-      for (let exchange of socket.exchanges) {
+      for (let i = 0; i < socket.exchanges.length; i++) {
         if (
-          exchange.price === null ||
-          this.actives.indexOf(exchange.id) === -1
+          socket.exchanges[i].price === null ||
+          this.actives.indexOf(socket.exchanges[i].id) === -1
         ) {
           continue
         }
 
         total++
-        price += exchange.price
+        price += socket.exchanges[i].price
       }
 
       price = price / total
 
-      this.price = this.$root.formatPrice(price)
+      if (price) {
+        this.$store.dispatch('app/updatePrice', price)
+      }
 
-      window.document.title = this.price
-        .toString()
-        .replace(/<\/?[^>]+(>|$)/g, '')
-
-      /* if (direction) {
-        let favicon = document.getElementById('favicon');
-
-        if (!favicon || favicon.getAttribute('direction') !== direction) {
-          if (favicon) {
-            document.head.removeChild(favicon);
-          }
-
-          favicon = document.createElement('link');
-          favicon.id = 'favicon';
-          favicon.rel = 'shortcut icon';
-          favicon.href = `static/${direction}.png`;
-
-          favicon.setAttribute('direction', direction);
-
-          document.head.appendChild(favicon);
-        }
-      } */
-
-      this._updatePriceTimeout = setTimeout(this.updatePrice, 1000)
+      this._updatePriceTimeout = setTimeout(this.updatePrice.bind(this), 1000)
     },
   },
 }

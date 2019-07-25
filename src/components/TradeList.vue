@@ -84,7 +84,6 @@ export default {
     this.retrieveStoredGifs()
     this.retrieveColorSteps()
 
-    socket.$on('pairing', this.onPairing)
     socket.$on('trades.raw', this.onTrades)
 
     this.onStoreMutation = this.$store.subscribe((mutation, state) => {
@@ -142,7 +141,6 @@ export default {
     this.redrawList()
   },
   beforeDestroy() {
-    socket.$off('pairing', this.onPairing)
     socket.$off('trades.raw', this.onTrades)
 
     this.onStoreMutation()
@@ -152,9 +150,6 @@ export default {
     this.sfx && this.sfx.disconnect()
   },
   methods: {
-    onPairing() {
-      this.trades = []
-    },
     onTrades(trades) {
       for (let trade of trades) {
         this.processTrade(trade)

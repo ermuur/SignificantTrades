@@ -25,7 +25,7 @@ class Binance extends Exchange {
     this.options = Object.assign(
       {
         url: () => {
-          return 'wss://stream.binance.com:9443/ws/' + this.pair + '@aggTrade'
+          return 'wss://stream.binance.com:9443/stream?streams=' + this.pairs.map(pair => `${pair}@aggTrade`).join('/')
         },
       },
       this.options
@@ -56,13 +56,14 @@ class Binance extends Exchange {
   }
 
   formatLiveTrades(trade) {
-    if (trade) {
+    if (trade && trade.data) {
       return [{
         exchange: this.id,
-        timestamp: trade.E,
-        price: +trade.p,
-        size: +trade.q,
-        side: trade.m ? 'sell' : 'buy'
+        timestamp: trade.data.E,
+        price: +trade.data.p,
+        size: +trade.data.q,
+        side: trade.data.m ? 'sell' : 'buy',
+        pair: trade.data.s
       }]
     }
 

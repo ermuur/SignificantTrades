@@ -24,6 +24,54 @@
   transition: transform .3s $easeOutExpo;
 }
 
+.app__search {
+  position: relative;
+  z-index: 10;
+
+  &:before {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, .2);
+    z-index: 1;
+    content: '';
+  }
+
+  .autocomplete {
+    position: absolute;
+    top: 3em;
+    transform: translateX(-50%);
+    left: 50%;
+    max-width: 300px;
+    width: calc(100% - 32px);
+    z-index: 10;
+    animation: autocomplete-in .2s $easeElastic;
+
+    @keyframes autocomplete-in {
+      from {
+        transform: translateX(-50%) scale(.5);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(-50%);
+        opacity: 1;
+      }
+    }
+
+    &__wrapper {
+      box-shadow: $shadow
+    }
+
+    &__dropdown {
+      width: auto;
+      margin: 0 4px;
+      box-shadow: $shadow
+    }
+  }
+}
+
 .stack__container {
   transform: none;
   overflow: hidden;

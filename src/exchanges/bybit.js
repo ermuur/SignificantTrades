@@ -33,12 +33,14 @@ class Bybit extends Exchange {
     this.api.onopen = (event) => {
       this.skip = true
 
-      this.api.send(
-        JSON.stringify({
-          op: 'subscribe',
-          args: ['trade'],
-        })
-      )
+      for (let i = 0; i < this.pairs.length; i++) {
+        this.api.send(
+          JSON.stringify({
+            op: 'subscribe',
+            args: ['trade.' + this.pairs[i]],
+          })
+        )
+      }
 
       /* this.keepalive = setInterval(() => {
                 this.api.send(JSON.stringify({
@@ -69,7 +71,6 @@ class Bybit extends Exchange {
   formatLiveTrades(json) {
     if (
       !json.data ||
-      json.topic !== 'trade.' + this.pair ||
       !json.data.length
     ) {
       return
@@ -82,6 +83,7 @@ class Bybit extends Exchange {
         price: +trade.price,
         size: trade.size / trade.price,
         side: trade.side === 'Buy' ? 'buy' : 'sell',
+        pair: json.topic.substr(6)
       }
     })
   }

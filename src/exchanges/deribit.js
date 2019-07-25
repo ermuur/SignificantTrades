@@ -31,14 +31,16 @@ class Deribit extends Exchange {
     this.api.onopen = (event) => {
       this.skip = true
 
-      this.api.send(
-        JSON.stringify({
-          method: 'public/subscribe',
-          params: {
-            channels: ['trades.' + this.pair + '.raw'],
-          },
-        })
-      )
+      for (let i = 0; i < this.pairs.length; i++) {
+        this.api.send(
+          JSON.stringify({
+            method: 'public/subscribe',
+            params: {
+              channels: ['trades.' + this.pairs[i] + '.raw'],
+            },
+          })
+        )
+      }
 
       this.keepalive = setInterval(() => {
         this.api.send(
@@ -79,6 +81,7 @@ class Deribit extends Exchange {
       price: +trade.price,
       size: trade.amount / trade.price,
       side: trade.direction === 'buy' ? 'buy' : 'sell',
+      pair: trade.instrument_name.substr(0, 3)
     }))
   }
 

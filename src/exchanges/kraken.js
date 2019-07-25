@@ -32,7 +32,7 @@ class Kraken extends Exchange {
       this.api.send(
         JSON.stringify({
           event: 'subscribe',
-          pair: [this.pair],
+          pair: this.pairs,
           subscription: {
             name: 'trade',
           },
@@ -61,6 +61,7 @@ class Kraken extends Exchange {
         price: trade[0],
         size: trade[1],
         side: trade[3] === 'b' ? 'buy' : 'sell',
+        pair: json[3]
       }))
     }
 

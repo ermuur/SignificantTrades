@@ -49,6 +49,13 @@ class Exchange extends EventEmitter {
     }
 
     this.indexProducts();
+
+    if (module.hot) {
+      module.hot.dispose(() => {
+        console.log('disconnect exchange (module.hot)')
+        this.disconnect();
+      });
+    }
   }
 
   set pair(name) {
@@ -149,7 +156,7 @@ class Exchange extends EventEmitter {
   /**
    * Larges trades are often sent in the form on multiples trades
    * For example a $1000000 trade on BitMEX can be received as 20 "small" trades, registered on the same timestamp (and side)
-   * groupTrades makes sure the output is a single $1000000 
+   * groupTrades makes sure the output is a single $1000000
    * and not 20 multiple trades which would show as multiple 100k$ in the TradeList
    *
    * @param {*} trades
@@ -300,7 +307,7 @@ class Exchange extends EventEmitter {
 
   indexProducts() {
     this.indexedProducts = []
-    
+
     if (!this.products) {
       return
     }

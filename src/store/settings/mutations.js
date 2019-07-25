@@ -4,7 +4,10 @@ import { uniqueName } from '../../utils/helpers'
 
 export default {
   SET_PAIR(state, value) {
+    console.log('SET_PAIR', value.toString().toUpperCase())
     state.pair = value.toString().toUpperCase()
+
+    this.state.app.pairs = state.pair.split('+');
   },
   SET_QUOTE_AS_PREFERED_CURRENCY(state, value) {
     state.preferQuoteCurrencySize = value ? true : false

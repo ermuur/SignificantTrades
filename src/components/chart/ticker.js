@@ -35,7 +35,7 @@ export function clear() {
       serie.adapter.onInit(currentTick.series[serie.id])
     }
 
-    serie.api.setData([])
+    // serie.api.setData([])
   }
 }
 

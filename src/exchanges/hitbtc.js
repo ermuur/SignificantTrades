@@ -11,7 +11,7 @@ class Hitbtc extends Exchange {
       TRADES: () =>
         `https://api.hitbtc.com/api/2/public/trades/${
           this.pair
-        }?sort=DESC&limit=500`,
+        }?sort=DESC&limit=50d0`,
     }
 
     this.options = Object.assign(
@@ -31,14 +31,16 @@ class Hitbtc extends Exchange {
       this.emitTrades(this.formatLiveTrades(JSON.parse(event.data)))
 
     this.api.onopen = (event) => {
-      this.api.send(
-        JSON.stringify({
-          method: 'subscribeTrades',
-          params: {
-            symbol: this.pair,
-          },
-        })
-      )
+      for (let i = 0; i < this.pairs.length; i++) {
+        this.api.send(
+          JSON.stringify({
+            method: 'subscribeTrades',
+            params: {
+              symbol: this.pairs[i],
+            },
+          })
+        )
+      }
 
       this.emitOpen(event)
     }
@@ -70,12 +72,13 @@ class Hitbtc extends Exchange {
       json.params.data.length
     ) {
       return json.params.data.map((trade) => ({
-        
+
         exchange: this.id,
         timestamp: +new Date(trade.timestamp),
         price: +trade.price,
         size: +trade.quantity,
         side: trade.side === 'buy' ? 'buy' : 'sell',
+        pair: json.params.symbol
       }))
     }
   }

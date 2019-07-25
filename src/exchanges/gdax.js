@@ -41,7 +41,7 @@ class Gdax extends Exchange {
       this.api.send(
         JSON.stringify({
           type: 'subscribe',
-          channels: [{ name: 'matches', product_ids: [this.pair] }],
+          channels: [{ name: 'matches', product_ids: this.pairs }],
         })
       )
 
@@ -72,6 +72,7 @@ class Gdax extends Exchange {
         price: +json.price,
         size: +json.size,
         side: json.side === 'buy' ? 'buy' : 'sell',
+        pair: product_id
       },
     ]
   }

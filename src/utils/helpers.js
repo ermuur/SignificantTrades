@@ -82,7 +82,7 @@ export function formatPrice(price, decimals, sats = true) {
 
   if (
     sats &&
-    ((price <= 0.001 && /BTC$/.test(this.pair)) || price <= 0.0001)
+    ((price <= 0.001 && /BTC$/.test(store.state.settings.pair)) || price <= 0.0001)
   ) {
     return (
       (price * 100000000).toFixed() +

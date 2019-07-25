@@ -4,12 +4,20 @@
       <div class="header__title">
         <span class="pair" v-if="pair">{{ pair }}</span>
         <span class="icon-quote"></span>
-        <span v-html="price || 'SignificantTrades'"></span>
+        <span v-html="currentPrice || 'SignificantTrades'"></span>
       </div>
       <button
         type="button"
+        @click="$store.commit('app/TOGGLE_SEARCH')"
+        title="Search"
+        v-tippy="{ placement: 'bottom' }"
+      >
+        <span class="icon-search"></span>
+      </button>
+      <button
+        type="button"
         v-if="!isPopupMode"
-        @click="togglePopup"
+        @click="open"
         title="Open as popup"
         v-tippy="{ placement: 'bottom' }"
       >
@@ -17,17 +25,20 @@
       </button>
       <button
         type="button"
+        title="Toggle trades sound"
+        v-tippy="{ placement: 'bottom' }"
         :class="{ active: useAudio }"
         @click="$store.commit('settings/TOGGLE_AUDIO', !useAudio)"
       >
         <span class="icon-volume-muted"></span>
       </button>
-      <button type="button" @click="$emit('toggleSettings')">
+      <button
+        type="button"
+        title="Open settings"
+        v-tippy="{ placement: 'bottom' }"
+        @click="$emit('toggleSettings')">
         <span class="icon-cog"></span>
       </button>
-    </div>
-    <div v-if="searchOpen" class="header__search">
-      <Autocomplete :load="search"/>
     </div>
   </header>
 </template>
@@ -37,17 +48,10 @@ import { mapState } from 'vuex'
 
 import socket from '../services/socket'
 
-import Autocomplete from './ui/Autocomplete.vue'
-
 export default {
-  components: {
-    Autocomplete,
-  },
-  props: ['price'],
   data() {
     return {
-      isPopupMode: window.opener && /^sig/.test(window.name),
-      searchOpen: false
+      isPopupMode: /^sig/.test(window.name)
     }
   },
   computed: {
@@ -58,6 +62,9 @@ export default {
       'isSnaped',
       'chartRange'
     ]),
+    ...mapState('app', [
+      'currentPrice'
+    ])
   },
   methods: {
     togglePopup() {
@@ -70,11 +77,6 @@ export default {
       setTimeout(() => {
         window.close()
       }, 500)
-    },
-    search(query) {
-      return socket.exchanges.map(a => a.indexedProducts).reduce((a, b) => {
-        return a.concat(b);
-      }, []).filter((a, index, arr) => arr.indexOf(a) === index && new RegExp(query, "i").test(a))
     }
   },
 }

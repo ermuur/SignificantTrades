@@ -61,8 +61,11 @@ $icon-ltc: \e930;
 $icon-xmr: \e931;
 $icon-iota: \e932;
 $icon-eos: \e933;
+$icon-search: \e934;
 
 $exchanges: bitmex binance bitfinex okex huobi bitstamp gdax hitbtc poloniex liquid coinex kraken deribit bybit;
+
+$shadow: 0 2px 2px rgba(0, 0, 0, 0.2), 0 8px 24px rgba(0, 0, 0, 0.1);
 
 @function unicode($str) {
   @return unquote("\"") + $str + unquote("\"");

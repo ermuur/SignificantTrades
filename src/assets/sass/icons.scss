@@ -285,3 +285,8 @@ $iconpath: 'assets/fonts';
     content: unicode($icon-eos);
   }
 }
+.icon-search {
+  &:before {
+    content: unicode($icon-search);
+  }
+}

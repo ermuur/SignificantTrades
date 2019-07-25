@@ -6,6 +6,7 @@ class Okex extends Exchange {
     super(options)
 
     this.id = 'okex'
+    this.types = []
 
     this.endpoints = {
       PRODUCTS: [
@@ -30,11 +31,11 @@ class Okex extends Exchange {
 
       if (id) {
         if (/\d+$/.test(id)) {
-          this.type = 'futures';
+          this.types[id] = 'futures';
         } else if (/\-SWAP$/.test(id)) {
-          this.type = 'swap';
+          this.types[id] = 'swap';
         } else {
-          this.type = 'spot';
+          this.types[id] = 'spot';
         }
       }
 
@@ -63,7 +64,7 @@ class Okex extends Exchange {
       this.api.send(
         JSON.stringify({
           op: 'subscribe',
-          args: [`${this.type}/trade:${this.pair}`],
+          args: this.pairs.map(pair => `${this.types[pair]}/trade:${pair}`),
         })
       )
 
@@ -125,6 +126,7 @@ class Okex extends Exchange {
         price: +trade.price,
         size: size,
         side: trade.side === 'buy' ? 'buy' : 'sell',
+        pair: trade.instrument_id
       }
     })
   }

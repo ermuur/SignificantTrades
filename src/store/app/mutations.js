@@ -1,5 +1,7 @@
 import Vue from 'vue'
 
+import { formatPrice } from '../../utils/helpers'
+
 export default {
   TOGGLE_EXCHANGE(state, { exchange, active }) {
     if (!this.state.settings.exchanges[exchange]) {
@@ -49,4 +51,27 @@ export default {
       state.notices.splice(index, 1)
     }
   },
+  UPDATE_PRICE(state, price) {
+    state.previousPrices.push(price);
+
+    if (state.previousPrices.length > 4) {
+      state.previousPrices.shift()
+    }
+
+    state.currentPrice = formatPrice(price);
+
+    let total = 0
+
+    for (let i = 0; i < state.previousPrices.length; i++) {
+      total += state.previousPrices[i];
+    }
+
+    state.averagePrice = total / state.previousPrices.length;
+  },
+  SET_PRICE_DIRECTION(state, direction) {
+    state.priceDirection = direction
+  },
+  TOGGLE_SEARCH(state, value) {
+    state.showSearch = typeof value !== 'undefined' ? !!value : !state.showSearch
+  }
 }

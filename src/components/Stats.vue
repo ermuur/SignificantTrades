@@ -52,6 +52,10 @@ export default {
         case 'settings/SET_STAT_OUTPUT':
           this.refreshCounter(this.statsCounters[mutation.payload.index].name)
           break
+
+        case 'settings/SET_PAIR':
+          this.prepareCounters()
+          break
       }
     })
   },
@@ -85,7 +89,9 @@ export default {
         this.$set(this.data, counters[i].name, counters[i].getValue())
       }
     },
-    onFetch(trades, from, to) {},
+    onFetch(trades, from, to) {
+
+    },
     clearCounters() {
       for (let i = counters.length - 1; i >= 0; i--) {
         if (!counters[i]) {

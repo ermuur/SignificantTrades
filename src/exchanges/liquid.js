@@ -34,7 +34,7 @@ class Liquid extends Exchange {
 
     this.api = new Pusher(this.options.appId)
 
-    const channel = this.api.subscribe(
+    this.api.subscribe(
       this.options.channel + this.pair.toLowerCase()
     )
 

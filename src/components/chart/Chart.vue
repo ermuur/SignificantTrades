@@ -1,7 +1,7 @@
 <template>
   <div id="chart" class="chart">
     <ChartSeries />
-    <ChartControls />
+    <ChartControls ref="chartControls" />
     <div ref="chart" class="chart__canvas"></div>
   </div>
 </template>
@@ -65,7 +65,7 @@ export default {
       switch (mutation.type) {
         case 'settings/TOGGLE_EXCHANGES_BAR':
           setTimeout(() => {
-            chart.resize(this.$el.clientHeight, this.$el.clientWidth)
+            this.resize()
           })
           break
         case 'settings/SET_TIMEFRAME':
@@ -94,33 +94,54 @@ export default {
 
     this.fetch()
 
+    // subscribe to window resize
+    this._onResize = this.resize.bind(this)
+    window.addEventListener('resize', this._onResize)
+
     // listen to fetch
     socket.$on('historical', this.onFetch)
 
     // listen to trades
     socket.$on('trades.queued', this.onTrades)
+
+    this.updateControlsPosition()
   },
   beforeDestroy() {
+    // unsubscribe
     socket.$off('trades.queued', this.onTrades)
     socket.$off('historical', this.onFetch)
+    window.removeEventListener('resize', this._onResize)
+    this.onStoreMutation()
 
     // delete series
     reset()
 
     // delete chart
     chart.remove()
-
-    // unsubscribe store
-    this.onStoreMutation()
   },
   methods: {
     onFetch(trades) {
       clear()
       populateTick(trades)
+
+      this.updateControlsPosition()
     },
 
     onTrades(trades) {
       populateTick(trades)
+    },
+
+    resize() {
+      console.log('resize');
+      chart.resize(this.$el.clientHeight, this.$el.clientWidth)
+
+      this.updateControlsPosition()
+    },
+
+    updateControlsPosition() {
+      setTimeout(() => {
+        this.$refs.chartControls.$el.style.right = chart._chartWidget._priceAxisWidth + 'px'
+      }, 1000)
     },
 
     fetch() {

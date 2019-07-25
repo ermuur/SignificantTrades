@@ -48,7 +48,8 @@ export default {
 .chart-controls {
   position: absolute;
   top: 1em;
-  right: 5.5em;
+  right: 59px;
+  margin-right: 1em;
   z-index: 3;
   font-size: 12px;
   text-align: right;

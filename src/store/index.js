@@ -13,12 +13,16 @@ const store = new Vuex.Store({
   }
 })
 
+if (store.state.settings.pair && store.state.settings.pair.length) {
+  store.state.app.pairs = store.state.settings.pair.split('+');
+}
+
 let saveTimeout;
 
 store.subscribe((mutation, state) => {
   if (/^settings/.test(mutation.type)) {
     clearTimeout(saveTimeout)
-    
+
     saveTimeout = setTimeout(() => {
       console.log(mutation, 'save..')
       const copy = JSON.parse(JSON.stringify(state.settings))

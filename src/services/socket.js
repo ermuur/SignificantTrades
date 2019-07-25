@@ -133,6 +133,7 @@ const emitter = new Vue({
 
     if (module.hot) {
       module.hot.dispose(() => {
+        console.log('disconnect all exchanges (module.hot)')
         for (let i = 0; i < this.exchanges.length; i++) {
           this.exchanges[i].disconnect()
         }
@@ -174,20 +175,16 @@ const emitter = new Vue({
         1000
       )
     },
-    connectExchanges(pair = null) {
+    connectExchanges() {
       this.disconnectExchanges()
 
-      if (!pair && !this.pair) {
+      if (!this.pair) {
         return store.dispatch('app/showNotice', {
           id: `server_status`,
           type: 'error',
           title: `No pair`,
           message: `Type the name of the pair you want to watch in the pair section of the settings panel`,
         })
-      }
-
-      if (pair) {
-        this.pair = pair.toUpperCase()
       }
 
       this.trades = this.queue = this.ticks = []
@@ -212,7 +209,7 @@ const emitter = new Vue({
             id: `server_status`,
             type: 'error',
             title: `No match`,
-            message: `"${pair}" did not matched with any active pairs`,
+            message: `"${this.pair}" did not matched with any active pairs`,
           })
 
           return
@@ -222,14 +219,8 @@ const emitter = new Vue({
           id: `server_status`,
           type: 'info',
           title: `Loading`,
-          message: `${validExchanges.length} exchange(s) matched ${pair}`,
+          message: `${validExchanges.length} exchange(s) matched ${this.pair}`,
         })
-
-        if (this._pair !== this.pair) {
-          this.$emit('pairing', this.pair, this.canFetch())
-
-          this._pair = this.pair
-        }
 
         console.log(
           `[socket.connect] ${

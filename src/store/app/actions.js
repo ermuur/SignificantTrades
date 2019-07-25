@@ -1,4 +1,18 @@
 export default {
+  updatePrice({ commit }, price) {
+    if (price === this.state.app.previousPrices[this.state.app.previousPrices.length]) {
+      console.log('price is same')
+      return;
+    }
+
+    commit('UPDATE_PRICE', price)
+
+    let direction = this.state.app.averagePrice < price ? 'up' : 'down';
+
+    if (direction !== this.state.app.priceDirection) {
+      commit('SET_PRICE_DIRECTION', direction);
+    }
+  },
   refreshExchange({ commit }, exchange) {
     const active =
       !this.state.settings.exchanges[exchange] ||

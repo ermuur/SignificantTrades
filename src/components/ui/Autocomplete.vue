@@ -1,28 +1,32 @@
 <template>
   <div class="autocomplete">
     <div class="autocomplete__wrapper">
-      <div
-        class="autocomplete__item"
-        v-for="(value, index) in items"
-        :key="index"
-        @click="removeItem(index)"
-        v-text="value"
-      ></div>
-      <div
-        ref="input"
-        class="autocomplete__input"
-        contenteditable
-        :placeholder="placeholder"
-        @focus="open"
-        @input="search($event.target.innerText)"
-        @keydown="handleKeydown"
-      ></div>
+      <div class="autocomplete__items">
+        <div
+          class="autocomplete__item"
+          v-for="(value, index) in items"
+          :key="index"
+          @click="removeItem(index)"
+          v-text="value"
+        ></div>
+        <div
+          ref="input"
+          class="autocomplete__input"
+          contenteditable
+          :placeholder="placeholder"
+          @focus="open"
+          @input="search($event.target.innerText)"
+          @keydown="handleKeydown"
+        ></div>
+      </div>
+      <button class="btn -blue autocomplete__submit" :class="{ active: items.length > 0 }" @click="submit"><i class="icon-check"></i></button>
     </div>
     <div class="autocomplete__dropdown" v-show="isOpen">
       <div
         class="autocomplete__option"
         v-for="(value, index) in filteredOptions"
         :key="index"
+        :class="{ 'active': activeOptionIndex === index }"
         @click="addItem(index)"
         v-text="value"
       ></div>
@@ -39,6 +43,10 @@ export default {
     },
     load: {
       type: Function
+    },
+    selected: {
+      type: Array,
+      default: []
     }
   },
 
@@ -46,8 +54,8 @@ export default {
     return {
       isOpen: false,
       activeOptionIndex: null,
-      items: [],
-      options: []
+      options: [],
+      items: []
     }
   },
 
@@ -57,7 +65,9 @@ export default {
     }
   },
 
-  created() {},
+  created() {
+    this.items = this.selected.slice(0, this.selected.length);
+  },
 
   methods: {
     search(query) {
@@ -82,6 +92,7 @@ export default {
       if (!this.options.length) {
         this.close()
       } else {
+        this.activeOptionIndex = 0
         this.open()
       }
     },
@@ -93,8 +104,6 @@ export default {
       console.log('open')
 
       this.isOpen = true
-
-      this.bindClose()
     },
 
     close() {
@@ -105,42 +114,10 @@ export default {
       console.log('close')
 
       this.isOpen = false
-
-      this.bindClose(true)
-    },
-
-    bindClose(unbind = false) {
-      if (typeof this["_bindCloseHandler"] !== "undefined") {
-        if (unbind) {
-          document.removeEventListener(
-            this.$root.isTouchSupported ? "touchdown" : "mousedown",
-            this["_bindCloseHandler"],
-            false
-          )
-        }
-
-        delete this["_bindCloseHandler"]
-
-        return
-      }
-
-      this["_bindCloseHandler"] = event => {
-        if (event.target === this.$el || this.$el.contains(event.target)) {
-          return
-        }
-
-        this.close()
-      }
-
-      document.addEventListener(
-        this.$root.isTouchSupported ? "touchdown" : "mousedown",
-        this["_bindCloseHandler"],
-        false
-      )
     },
 
     addItem(index) {
-      const value = this.options[index]
+      const value = this.filteredOptions[index]
 
       if (!value || this.items.indexOf(value) !== -1) {
         return
@@ -149,6 +126,8 @@ export default {
       this.items.push(value)
 
       this.$refs.input.innerText = ""
+
+      this.activeOptionIndex = null
     },
 
     removeItem(index) {
@@ -158,10 +137,11 @@ export default {
     handleKeydown($event) {
       switch ($event.which) {
         case 13:
+          event.preventDefault()
           if (this.activeOptionIndex !== null) {
-            event.preventDefault()
-
             this.addItem(this.activeOptionIndex)
+          } else if (this.items.length && !this.$refs.input.innerText.length) {
+            this.submit()
           }
           break
         case 8:
@@ -180,38 +160,21 @@ export default {
               if (this.activeOptionIndex === null ) {
                 this.activeOptionIndex = 0
               } else {
-                this.activeOptionIndex = Math.min(this.options.length - 1, this.activeOptionIndex + 1)
+                this.activeOptionIndex = Math.min(this.filteredOptions.length - 1, this.activeOptionIndex + 1)
               }
             }
           }
           break
       }
+    },
+
+    submit() {
+      if (!this.items.length) {
+        return;
+      }
+
+      this.$emit('submit', this.items);
     }
-    /*
-    getCaretPosition(editableDiv) {
-      var caretPos = 0, sel, range;
-      if (window.getSelection) {
-      sel = window.getSelection();
-      if (sel.rangeCount) {
-      range = sel.getRangeAt(0);
-      if (range.commonAncestorContainer.parentNode == editableDiv) {
-        caretPos = range.endOffset;
-      }
-      }
-      } else if (document.selection && document.selection.createRange) {
-      range = document.selection.createRange();
-      if (range.parentElement() == editableDiv) {
-      var tempEl = document.createElement("span");
-      editableDiv.insertBefore(tempEl, editableDiv.firstChild);
-      var tempRange = range.duplicate();
-      tempRange.moveToElementText(tempEl);
-      tempRange.setEndPoint("EndToEnd", range);
-      caretPos = tempRange.text.length;
-      }
-      }
-      return caretPos;
-    }
-    */
   }
 }
 </script>
