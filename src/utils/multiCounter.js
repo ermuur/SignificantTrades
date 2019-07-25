@@ -1,4 +1,4 @@
-import Counter from './Counter';
+import Counter from './counter';
 import { formatAmount } from './helpers';
 
 export default class MultiCounter extends Counter {

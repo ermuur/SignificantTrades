@@ -1,6 +1,6 @@
 import socket from '../services/socket'
 import store from '../store'
-import { formatAmount } from '../utils/helpers'
+import { formatAmount } from './helpers'
 
 const GRANULARITY = store.state.settings.statsGranularity // 5s
 const PERIOD = store.state.settings.statsPeriod // 3m

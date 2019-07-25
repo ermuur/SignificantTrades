@@ -11,8 +11,8 @@
 import { mapState } from 'vuex'
 
 import socket from '../services/socket'
-import Counter from '../utils/Counter'
-import MultiCounter from '../utils/MultiCounter'
+import Counter from '../utils/counter'
+import MultiCounter from '../utils/multiCounter'
 
 /** @type {Counter[]} */
 const counters = []
