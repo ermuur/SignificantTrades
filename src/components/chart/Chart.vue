@@ -120,9 +120,9 @@ export default {
     chart.remove()
   },
   methods: {
-    onFetch(trades) {
+    onFetch() {
       clear()
-      populateTick(trades)
+      populateTick(socket.getTrades())
 
       this.updateControlsPosition()
     },

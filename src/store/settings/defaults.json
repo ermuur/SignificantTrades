@@ -46,27 +46,33 @@
   "cumulativeCounters": true,
   "showStats": true,
   "showChart": true,
-  "statsGraphs": true,
   "statsGranularity": 5000,
   "statsPeriod": 180000,
+  "statsChart": false,
   "statsCounters": [
     {
       "name": "TRADES",
       "output": "stats.buyCount + stats.sellCount",
       "enabled": true,
-      "period": 180000
+      "color": "#ffeeff",
+      "precision": 0,
+      "smoothing": 14
     },
     {
       "name": "VOLUME Δ",
       "output": "stats.buyAmount - stats.sellAmount",
       "enabled": true,
-      "period": 180000
+      "color": "#eeffee",
+      "precision": 0,
+      "smoothing": 14
     },
     {
       "name": "TRADES Δ",
       "output": "stats.buyCount - stats.sellCount",
       "enabled": false,
-      "period": 180000
+      "color": "#eeeeff",
+      "precision": 0,
+      "smoothing": 14
     },
     {
       "name": "1H LIQUIDATIONS",
@@ -88,6 +94,15 @@
     {
       "adapter": "sma",
       "linkedTo": "price"
+    },
+    {
+      "adapter": "volume"
+    },
+    {
+      "adapter": "buys"
+    },
+    {
+      "adapter": "sells"
     }
   ],
   "seriesOptions": {

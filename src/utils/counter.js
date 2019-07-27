@@ -1,14 +1,16 @@
+
 import socket from '../services/socket'
 import store from '../store'
-import { formatAmount } from './helpers'
 
 const GRANULARITY = store.state.settings.statsGranularity // 5s
 const PERIOD = store.state.settings.statsPeriod // 3m
 
 export default class Counter {
-  constructor(callback, { period, subscribe, model } = {}) {
+  constructor(callback, { options, model } = {}) {
     this.callback = callback;
-    this.period = !isNaN(period) ? period : PERIOD;
+    this.options = options;
+    this.period = !isNaN(this.options.period) ? +this.options.period : PERIOD;
+    this.smoothing = !isNaN(this.options.smoothing) ? +this.options.smoothing : false;
     this.granularity = Math.max(GRANULARITY, this.period / 50)
     this.timeouts = [];
 
@@ -24,11 +26,6 @@ export default class Counter {
 
     this.clear();
 
-    if (subscribe) {
-      this._onTrades = this.onTrades.bind(this);
-      socket.$on('trades.queued', this._onTrades)
-    }
-
     if (module.hot) {
       module.hot.dispose(() => {
         this.unbind()
@@ -39,6 +36,8 @@ export default class Counter {
   clear() {
     this.live = this.getModel();
     this.stacks = []
+    this.lasts = []
+    this.sum = 0
 
     for (let i = 0; i < this.timeouts.length; i++) {
       clearTimeout(this.timeouts[i]);
@@ -47,17 +46,12 @@ export default class Counter {
 
   unbind() {
     console.log('[counter.js] unbind')
-    socket.$off('trades.queued', this._onTrades);
+    
     this.clear()
   }
 
   onTrades(trades, stats) {
     const data = this.callback(stats, trades)
-
-    if ((this.constructor.name === 'Counter' && !data) || (this.constructor.name === 'MultiCounter' && !+data.join('') === 0)) {
-      console.log('data skipped', data);
-      return;
-    }
 
     if (!this.stacks.length || trades[0].timestamp > this.timestamp + this.granularity) {
       this.appendStack(trades[0].timestamp)
@@ -72,6 +66,15 @@ export default class Counter {
     }
 
     this.stacks.push(this.getModel())
+
+    if (this.smoothing) {
+      this.lasts.push(0);
+  
+      if (this.lasts.length > this.smoothing) {
+        this.sum -= this.lasts.shift()
+      }
+    }
+
     this.timestamp = Math.floor(timestamp / 1000) * 1000;
 
     this.timeouts.push(setTimeout(this.shiftStack.bind(this), this.period))
@@ -96,6 +99,13 @@ export default class Counter {
   addData(data) {
     this.stacks[this.stacks.length - 1] += data
     this.live += data
+
+    if (this.smoothing) {
+      this.sum -= this.lasts[this.lasts.length - 1]
+      this.sum += this.live
+    
+      this.lasts[this.lasts.length - 1] = this.live;
+    }
   }
 
   substractData(data) {
@@ -103,6 +113,10 @@ export default class Counter {
   }
 
   getValue() {
-    return formatAmount(this.live);
+    if (this.smoothing) {
+      return this.sum / this.lasts.length;
+    }
+
+    return this.live
   }
 }

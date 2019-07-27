@@ -1,5 +1,4 @@
 import Counter from './counter';
-import { formatAmount } from './helpers';
 
 export default class MultiCounter extends Counter {
   getModel() {
@@ -17,9 +16,5 @@ export default class MultiCounter extends Counter {
     for (let i = 0; i < data.length; i++) {
       this.live[i] -= data[i]
     }
-  }
-
-  getValue() {
-    return this.live.map(a => formatAmount(a)).join(' / ');
   }
 }

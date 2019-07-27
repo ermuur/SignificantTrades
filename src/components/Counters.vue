@@ -130,7 +130,7 @@ export default {
       }
     },
     onFetch(ticks) {
-      const trades = this.getTicksTrades()
+      const trades = socket.getTrades(this.countersSteps[this.countersSteps.length - 1])
       const stacks = this.stackTrades(trades)
 
       this.populateCounters(stacks)
@@ -210,7 +210,6 @@ export default {
 
       for (let i = 0; i < trades.length; i++) {
         if (
-          this.actives.indexOf(trades[i].exchange) === -1 ||
           trades[i].timestamp < now - minTimestampForCounter
         ) {
           continue
@@ -311,6 +310,8 @@ export default {
       })
     },
     rebuildCounters() {
+      console.log('[rebuildCounters]')
+      
       clearInterval(this.countersRefreshCycleInterval)
 
       const now = +new Date()
@@ -328,7 +329,7 @@ export default {
         this.stackedSums.push([0, 0])
       }
 
-      const trades = this.getTicksTrades()
+      const trades = socket.getTrades(this.countersSteps[this.countersSteps.length - 1])
       const stacks = this.stackTrades(trades)
 
       this.populateCounters(stacks)
@@ -359,40 +360,6 @@ export default {
         index: index,
         value: null,
       })
-    },
-    getTicksTrades() {
-      return socket.ticks
-        .reduce((prev, curr) => {
-          const ratio = {
-            buys: curr.buys / (curr.sells + curr.buys),
-            sells: curr.sells / (curr.sells + curr.buys),
-          }
-
-          if (curr.buys > 0) {
-            prev.push([
-              curr.exchange,
-              curr.timestamp,
-              curr.close,
-              ratio.buys * curr.volume,
-              true,
-              ratio.buys * curr.records,
-            ])
-          }
-
-          if (curr.sells > 0) {
-            prev.push([
-              curr.exchange,
-              curr.timestamp,
-              curr.close,
-              ratio.sells * curr.volume,
-              false,
-              ratio.sells * curr.records,
-            ])
-          }
-
-          return prev
-        }, [])
-        .concat(socket.trades)
     },
   },
 }

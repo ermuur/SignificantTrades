@@ -72,7 +72,7 @@ class Gdax extends Exchange {
         price: +json.price,
         size: +json.size,
         side: json.side === 'buy' ? 'buy' : 'sell',
-        pair: product_id
+        pair: json.product_id
       },
     ]
   }

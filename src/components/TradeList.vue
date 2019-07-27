@@ -79,6 +79,9 @@ export default {
       'aggregationLag',
       'showLogos',
     ]),
+    ...mapState('app', [
+      'actives',
+    ]),
   },
   created() {
     this.retrieveStoredGifs()
@@ -138,6 +141,7 @@ export default {
       }
     }, 1000)
 
+    console.log(this.actives);
     this.redrawList()
   },
   beforeDestroy() {
@@ -151,8 +155,8 @@ export default {
   },
   methods: {
     onTrades(trades) {
-      for (let trade of trades) {
-        this.processTrade(trade)
+      for (let i = 0; i < trades.length; i++) {
+        this.processTrade(trades[i])
       }
     },
     processTrade(trade) {
@@ -201,7 +205,7 @@ export default {
       }
 
       // group by [exchange name + buy=1/sell=0] (ex bitmex1)
-      const tid = trade.exchange + trade.side
+      const tid = trade.exchange + trade.side + (trade.pair || '')
       const now = socket.getCurrentTimestamp()
 
       if (this.thresholds[0].amount) {
@@ -237,7 +241,6 @@ export default {
       }
 
       this.appendRow(trade)
-      // }, delay)
     },
     appendRow(trade, classname = '', message = null) {
       let amount = trade.size * (this.preferQuoteCurrencySize ? trade.price : 1)
@@ -483,15 +486,13 @@ export default {
         foreground,
       }
     },
-    redrawList(limit = 1000) {
-      clearTimeout(this._refreshColorRenderList)
+    redrawList() {
+      clearTimeout(this._refreshRedrawList)
 
-      this._refreshColorRenderList = setTimeout(() => {
+      this._refreshRedrawList = setTimeout(() => {
+      console.log('[redrawList]')
         this.onTrades(
-          socket.trades.slice(
-            socket.trades.length - limit,
-            socket.trades.length
-          ),
+          socket.getTrades(1000 * 60),
           true
         )
       }, 500)

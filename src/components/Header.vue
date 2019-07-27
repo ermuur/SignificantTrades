@@ -17,7 +17,7 @@
       <button
         type="button"
         v-if="!isPopupMode"
-        @click="open"
+        @click="togglePopup"
         title="Open as popup"
         v-tippy="{ placement: 'bottom' }"
       >

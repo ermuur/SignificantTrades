@@ -1,6 +1,7 @@
 <template>
   <div
     id="app"
+    class="app"
     :data-prefer="preferQuoteCurrencySize ? 'quote' : 'base'"
     :data-base="baseCurrency"
     :data-quote="quoteCurrency"
@@ -126,7 +127,7 @@ export default {
     this.onStoreMutation = this.$store.subscribe((mutation, state) => {
       switch (mutation.type) {
         case 'settings/TOGGLE_AUTO_CLEAR':
-          this.TOGGLE_AUTO_CLEAR(mutation.payload)
+          this.toggleCleanInterval(mutation.payload)
           break
         case 'settings/SET_PAIR':
           socket.connectExchanges()
@@ -164,7 +165,7 @@ export default {
       }
     })
 
-    this.TOGGLE_AUTO_CLEAR(this.autoClearTrades)
+    this.toggleCleanInterval(this.autoClearTrades)
 
     // Is request blocked by browser ?
     // If true notice user that most of the exchanges may be unavailable
@@ -186,12 +187,13 @@ export default {
   mounted() {},
   beforeDestroy() {
     clearTimeout(this._updatePriceTimeout)
+    clearInterval(this._autoWipeCacheInterval)
 
     this.onStoreMutation()
   },
   methods: {
     search(query) {
-      return socket.exchanges.map(a => a.indexedProducts).reduce((a, b) => {
+      return socket.exchanges.map(a => a.indexedProducts.map(product => `${product} (${a.id})`)).reduce((a, b) => {
         return a.concat(b);
       }, []).filter((a, index, arr) => arr.indexOf(a) === index && new RegExp(query, "i").test(a))
     },
@@ -235,7 +237,7 @@ export default {
         this.symbol = symbols.BTC[1]
       }
     },
-    TOGGLE_AUTO_CLEAR(isAutoWipeCacheEnabled) {
+    toggleCleanInterval(isAutoWipeCacheEnabled) {
       clearInterval(this._autoWipeCacheInterval)
 
       if (!isAutoWipeCacheEnabled) {
@@ -287,5 +289,6 @@ export default {
 @import './assets/sass/button';
 @import './assets/sass/autocomplete';
 @import './assets/sass/modal';
+@import './assets/sass/picker';
 @import './assets/sass/notice';
 </style>

@@ -127,7 +127,6 @@ const renderSerie = (serie) => {
     serieAPI.update(value)
   }
 
-  serieData.value = value
   serieData.rendered = true
   serieData.empty = false
 }

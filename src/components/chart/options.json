@@ -1,79 +1,81 @@
 {
-    "chart": {
-        "crosshair": {
-            "vertLine": {
-                "color": "rgba(255, 255, 255, .5)",
-                "width": 0.5,
-                "style": 2,
-                "visible": true,
-                "labelVisible": false
-            },
-            "horzLine": {
-                "color": "rgba(255, 255, 255, .5)",
-                "width": 0.5,
-                "style": 2,
-                "visible": true,
-                "labelBackgroundColor": "red",
-                "labelVisible": true
-            },
-            "mode": 1
-        },
-        "layout": {
-            "backgroundColor": "#171b29",
-            "textColor": "white",
-            "fontFamily": "Roboto Condensed"
-        },
-        "grid": {
-            "horzLines": {
-                "visible": false
-            },
-            "vertLines": {
-                "visible": false
-            }
-        },
-        "timeScale": {
-            "barSpacing": 5,
-            "rightOffset": 12,
-            "fixLeftEdge": true,
-            "lockVisibleTimeRangeOnResize": true,
-            "rightBarStaysOnScroll": true,
-            "borderVisible": true,
-            "borderColor": "rgba(255, 255, 255, .2)",
-            "visible": true,
-            "timeVisible": true,
-            "secondsVisible": true
-        },
-        "priceScale": {
-            "position": "right",
-            "mode": 1,
-            "borderColor": "rgba(255, 255, 255, .2)"
-        }
+  "chart": {
+    "crosshair": {
+      "vertLine": {
+        "color": "rgba(255, 255, 255, .5)",
+        "width": 0.5,
+        "style": 2,
+        "visible": true,
+        "labelVisible": true
+      },
+      "horzLine": {
+        "color": "rgba(255, 255, 255, .5)",
+        "width": 0.5,
+        "style": 2,
+        "visible": true,
+        "labelBackgroundColor": "red",
+        "labelVisible": true
+      }
     },
-    "series": {
-        "candlestick": {
-            "baseLineStyle": false,
-            "lastValueVisible": true,
-            "priceLineVisible": true,
-            "priceLineWidth": 1,
-            "priceLineColor": "#ffffff",
-            "priceLineStyle": 4,
-            "priceFormat": {
-                "type": "price",
-                "precision": 2
-            },
-            "overlay": false,
-            "scaleMargins": {
-                "top": 0,
-                "bottom": 0
-            },
-            "borderVisible": false,
-            "upColor": "rgb(195, 168, 122)",
-            "downColor": "rgb(193, 64, 71)",
-            "wickUpColor": "rgba(223, 195, 148, .8)",
-            "wickDownColor": "rgba(224, 91, 95, .8)"
-        },
-        "line": {
-          "crosshairMarkerVisible": false
-        }
+    "layout": {
+      "backgroundColor": "#171b29",
+      "textColor": "white",
+      "fontFamily": "Roboto Condensed"
+    },
+    "grid": {
+      "horzLines": {
+        "visible": false
+      },
+      "vertLines": {
+        "visible": false
+      }
+    },
+    "timeScale": {
+      "barSpacing": 5,
+      "rightOffset": 12,
+      "fixLeftEdge": true,
+      "lockVisibleTimeRangeOnResize": true,
+      "rightBarStaysOnScroll": true,
+      "borderVisible": true,
+      "borderColor": "rgba(255, 255, 255, .2)",
+      "visible": true,
+      "timeVisible": true,
+      "secondsVisible": true
+    },
+    "priceScale": {
+      "position": "right",
+      "mode": 0,
+      "borderColor": "rgba(255, 255, 255, .2)"
     }
+  },
+  "series": {
+    "candlestick": {
+      "baseLineStyle": false,
+      "lastValueVisible": true,
+      "priceLineVisible": true,
+      "priceLineWidth": 1,
+      "priceLineColor": "#ffffff",
+      "priceLineStyle": 4,
+      "priceFormat": {
+        "type": "price",
+        "precision": 2
+      },
+      "overlay": false,
+      "scaleMargins": {
+        "top": 0,
+        "bottom": 0
+      },
+      "borderVisible": false,
+      "upColor": "rgb(195, 168, 122)",
+      "downColor": "rgb(193, 64, 71)",
+      "wickUpColor": "rgba(223, 195, 148, .8)",
+      "wickDownColor": "rgba(224, 91, 95, .8)"
+    },
+    "line": {
+      "crosshairMarkerVisible": false
+    },
+    "histogram": {
+      "color": "rgba(255, 255, 255, .2)"
+    }
+  }
 }

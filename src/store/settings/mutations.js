@@ -28,7 +28,7 @@ export default {
     state.liquidationsOnlyList = value ? true : false
   },
   SET_COUNTER_PRECISION(state, payload) {
-    state.counterPrecision = value
+    state.counterPrecision = !isNaN(payload) ? +payload : false
   },
   TOGGLE_COUNTERS(state, value) {
     state.showCounters = value ? true : false
@@ -84,6 +84,27 @@ export default {
 
     Vue.set(state.statsCounters, index, stat)
   },
+  SET_STAT_COLOR(state, { index, value }) {
+    const stat = state.statsCounters[index]
+
+    stat.color = value;
+
+    Vue.set(state.statsCounters, index, stat)
+  },
+  SET_STAT_SMOOTHING(state, { index, value }) {
+    const stat = state.statsCounters[index]
+
+    stat.smoothing = !isNaN(value) ? +value : false
+
+    Vue.set(state.statsCounters, index, stat)
+  },
+  SET_STAT_PRECISION(state, { index, value }) {
+    const stat = state.statsCounters[index]
+
+    stat.precision = !isNaN(value) ? +value : false
+
+    Vue.set(state.statsCounters, index, stat)
+  },
   CREATE_STAT(state) {
     state.statsCounters.push({
       name: uniqueName('COUNTER', state.statsCounters.map(a => a.name)),
@@ -108,8 +129,8 @@ export default {
 
     state.statsPeriod = milliseconds
   },
-  TOGGLE_STATS_GRAPHS(state, value) {
-    state.statsGraphs = value ? true : false;
+  TOGGLE_STATS_CHART(state, value) {
+    state.statsChart = value ? true : false;
   },
   TOGGLE_STATS_TIMEFRAME(state, value) {
     state.statsGraphsTimeframe = isNaN(+value) ? 1000 : value;

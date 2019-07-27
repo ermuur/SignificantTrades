@@ -60,7 +60,7 @@ export function createSerie(adapter, linkedTo) {
   let id = adapter.id;
 
   if (linkedTo) {
-    id += '_' + linkedTo.adapter.id;
+    linkedTo.adapter.id + '_' + id;
   }
 
   let options = Object.assign({}, seriesOptions[type] || {}, adapter.options || {}, store.state.settings.seriesOptions[id] || {})

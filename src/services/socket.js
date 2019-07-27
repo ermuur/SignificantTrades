@@ -18,6 +18,10 @@ import Bybit from '../exchanges/bybit'
 
 import store from '../store'
 
+let trades = [];
+let ticks = [];
+let queue = [];
+
 const emitter = new Vue({
   data() {
     return {
@@ -42,11 +46,6 @@ const emitter = new Vue({
         new Bybit(),
       ],
 
-      trades: [],
-      ticks: [],
-      queue: [],
-
-      _pair: null,
       _fetchedMax: false,
       _fetchedTime: 0,
       _fetchedBytes: 0,
@@ -83,7 +82,7 @@ const emitter = new Vue({
     },
   },
   created() {
-    window.getTrades = () => this.trades
+    window.getTrades = () => trades
 
     this.exchanges.forEach((exchange) => {
       exchange.on('trades', (trades) => {
@@ -91,7 +90,7 @@ const emitter = new Vue({
           return
         }
 
-        this.queue = this.queue.concat(trades)
+        queue = queue.concat(trades)
 
         this.$emit('trades.raw', trades)
       })
@@ -187,7 +186,7 @@ const emitter = new Vue({
         })
       }
 
-      this.trades = this.queue = this.ticks = []
+      trades = queue = ticks = []
       this._fetchedMax = false
 
       console.log(`[socket.connect] connecting to ${this.pair}`)
@@ -279,25 +278,25 @@ const emitter = new Vue({
 
       let i
 
-      for (i = 0; i < this.ticks.length; i++) {
-        if (this.ticks[i].timestamp >= minTimestamp) {
+      for (i = 0; i < ticks.length; i++) {
+        if (ticks[i].timestamp >= minTimestamp) {
           break
         }
       }
 
-      if (i && this.ticks.length) {
+      if (i && ticks.length) {
         this._fetchedMax = false
       }
 
-      this.ticks.splice(0, i)
+      ticks.splice(0, i)
 
-      for (i = 0; i < this.trades.length; i++) {
-        if (this.trades[i][1] > minTimestamp) {
+      for (i = 0; i < trades.length; i++) {
+        if (trades[i][1] > minTimestamp) {
           break
         }
       }
 
-      this.trades.splice(0, i)
+      trades.splice(0, i)
 
       this.$emit('clean', minTimestamp)
     },
@@ -311,17 +310,17 @@ const emitter = new Vue({
       return null
     },
     processQueue() {
-      if (!this.queue.length) {
+      if (!queue.length) {
         return
       }
 
-      const output = this.compressTrades(this.queue)
+      const output = this.compressTrades(queue)
 
-      this.trades = this.trades.concat(output)
+      trades = trades.concat(output)
 
       const stats = this.getStatsByTrades(output)
 
-      this.queue.splice(0, this.queue.length)
+      queue.splice(0, queue.length)
 
       this.$emit('trades.queued', output, stats)
     },
@@ -421,7 +420,7 @@ const emitter = new Vue({
     },
     fetchRange(range, clear = false) {
       if (clear) {
-        this.ticks.splice(0, this.ticks.length)
+        ticks.splice(0, ticks.length)
         this._fetchedMax = false
       }
 
@@ -432,8 +431,8 @@ const emitter = new Vue({
       const now = +new Date()
 
       const minData = Math.min(
-        this.trades.length ? this.trades[0][1] : now,
-        this.ticks.length ? this.ticks[0].timestamp : now
+        trades.length ? trades[0][1] : now,
+        ticks.length ? ticks[0].timestamp : now
       )
 
       let promise
@@ -460,7 +459,7 @@ const emitter = new Vue({
           ).toLocaleString()}\n\tfrom: ${new Date(
             from
           ).toLocaleString()}\n\tto: ${new Date(to).toLocaleString()} (${
-            this.trades.length
+            trades.length
               ? 'using first trade as base'
               : 'using now for reference'
           })`
@@ -512,7 +511,7 @@ const emitter = new Vue({
 
             switch (response.data.format) {
               case 'trade':
-                const beforeLength = data.length
+                const lengthBeforeCompression = data.length
 
                 data = this.compressTrades(
                   data.map((a) => ({
@@ -528,39 +527,39 @@ const emitter = new Vue({
                   'compression result',
                   data.length,
                   '(was ',
-                  beforeLength,
+                  lengthBeforeCompression,
                   ')'
                 )
 
-                if (!this.trades.length) {
+                if (!trades.length) {
                   console.log(
                     `[socket.fetch] set socket.trades (${data.length} trades)`
                   )
 
-                  this.trades = data
+                  trades = data
                 } else {
                   const prepend = data.filter(
-                    (trade) => trade.timestamp <= this.trades[0].timestamp
+                    (trade) => trade.timestamp <= trades[0].timestamp
                   )
                   const append = data.filter(
                     (trade) =>
                       trade.timestamp >=
-                      this.trades[this.trades.length - 1].timestamp
+                      trades[trades.length - 1].timestamp
                   )
 
                   if (prepend.length) {
                     console.log(`[fetch] prepend ${prepend.length} ticks`)
-                    this.trades = prepend.concat(this.trades)
+                    trades = prepend.concat(trades)
                   }
 
                   if (append.length) {
                     console.log(`[fetch] append ${append.length} ticks`)
-                    this.trades = this.trades.concat(append)
+                    trades = trades.concat(append)
                   }
                 }
                 break
               case 'tick':
-                this.ticks = data
+                ticks = data
 
                 if (data[0].timestamp > from) {
                   console.log('[socket.fetch] fetched max')
@@ -569,7 +568,7 @@ const emitter = new Vue({
                 break
             }
 
-            this.$emit('historical', data, format, from, to)
+            this.$emit('historical', data.filter(a => this.actives.indexOf(a.exchange) !== -1), format, from, to)
 
             resolve({
               format: format,
@@ -607,7 +606,7 @@ const emitter = new Vue({
       return +new Date()
     },
     getInitialPrices() {
-      if (!this.ticks.length && !this.trades.length) {
+      if (!ticks.length && !trades.length) {
         return this._firstCloses
       }
 
@@ -623,7 +622,7 @@ const emitter = new Vue({
 
       let gotAllCloses = false
 
-      for (let tick of this.ticks) {
+      for (let tick of ticks) {
         if (
           typeof closesByExchanges[tick.exchange] === 'undefined' ||
           closesByExchanges[tick.exchange]
@@ -645,7 +644,7 @@ const emitter = new Vue({
         }
       }
 
-      for (let trade of this.trades) {
+      for (let trade of trades) {
         if (
           typeof closesByExchanges[trade[0]] === 'undefined' ||
           closesByExchanges[trade[0]]
@@ -677,6 +676,37 @@ const emitter = new Vue({
 
       return closesByExchanges
     },
+    getTrades(from, to) {
+      const now = +new Date();
+
+      if (!to && from && from < 1E10) {
+        from = now - from
+      } else if (!from) {
+        from = 0
+      }
+
+      to = to || now
+
+      const activeExchanges = this.actives.slice(0, this.actives.length);
+
+      console.log('[socket] getTrades', new Date(from).toLocaleTimeString(), new Date(to).toLocaleTimeString())
+
+      const output = []
+
+      for (let i = trades.length - 1; i >= 0; i--) {
+        if (trades[i].timestamp < from) {
+          break;
+        }
+
+        if (trades[i].timestamp < to && trades[i].timestamp > from && activeExchanges.indexOf(trades[i].exchange) !== -1) {
+          output.unshift(trades[i])
+        }
+      }
+      
+      console.log('[socket] getTrades', output.length, 'out of', trades.length)
+
+      return output;
+    }
   },
 })
 

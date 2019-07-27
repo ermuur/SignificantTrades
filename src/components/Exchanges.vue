@@ -60,28 +60,25 @@ export default {
           const active = this.actives.indexOf(mutation.payload) !== -1
           const listed = this.list.indexOf(mutation.payload) !== -1
           if (active && !listed) {
-            console.log('edxchanges: list', mutation.payload)
             this.list.push(mutation.payload)
           } else if (!active && listed) {
-            console.log('exchanges: delist', mutation.payload)
             this.list.splice(this.list.indexOf(mutation.payload), 1)
           }
           break
       }
     })
 
-    this._updateExchangesInterval = setInterval(
-      this.updateExchanges.bind(this),
-      2000
-    )
+    this.updateExchangesPrices()
   },
   beforeDestroy() {
     this.onStoreMutation()
 
-    clearInterval(this._updateExchangesInterval)
+    clearTimeout(this._updateExchangesPricesTimeout)
   },
   methods: {
-    updateExchanges() {
+    updateExchangesPrices() {
+      this._updateExchangesPricesTimeout = setTimeout(this.updateExchangesPrices.bind(this), 1000 + Math.random() * 2000)
+
       const now = +new Date()
       for (let i = 0; i < socket.exchanges.length; i++) {
         const id = socket.exchanges[i].id

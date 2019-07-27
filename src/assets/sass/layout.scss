@@ -188,6 +188,7 @@
 
 		#trades {
 			position: relative;
+			font-size: .9em;
 
 			ul {
 				position: absolute;
@@ -215,11 +216,8 @@
 		.app__right {
 			overflow: hidden;
 			flex-basis: 290px;
-
-			font-size: .8em;
+			
 			flex-grow: 1;
-
-			font-size: 1.05em;
 
 			#stats .stats__items {
 				flex-wrap: wrap;
@@ -264,7 +262,6 @@
 			#trades {
 				flex-grow: 1;
 				overflow: auto;
-				font-size: .8em;
 			}
 		}
 	}
@@ -277,11 +274,6 @@
 
 		.highcharts-xaxis-labels {
 			transform: translateY(2px);
-		}
-
-		#trades,
-		#stats {
-			font-size: .8em;
 		}
 
 		#stats {
@@ -298,22 +290,11 @@
 
 	@media screen and (min-width: 1200px) {
 		.app__left {
-			flex-basis: 75%;
+			flex-basis: calc(100% - 340px);
 		}
 
 		.app__right {
-			font-size: 1.1em;
-			flex-basis: 25%;
-
-			#trades {
-				font-size: .9em;
-			}
-		}
-	}
-
-	@media screen and (min-width: 1600px) {
-		.app__right {
-			font-size: 1.2em;
+			flex-basis: 340px;
 		}
 	}
 }

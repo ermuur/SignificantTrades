@@ -1,25 +1,58 @@
 <template>
   <div id="stats" class="stats">
-    <div v-for="(value, name) in data" :key="name" class="custom-stat" @click="editByName(name)">
-      <div class="custom-stat__name">{{ name }}</div>
-      <div class="custom-stat__value">{{ value }}</div>
-    </div>
+    <div v-if="statsChart" class="stats__chart" ref="chart"></div>
+    <ul class="stats__counters">
+      <li v-for="(value, name) in data" :key="name" class="stat-counter" @click="editByName(name)">
+        <div class="stat-counter__name" :style="{ color: colors[name] }">{{ name }}</div>
+        <div class="stat-counter__value">{{ value }}</div>
+      </li>
+    </ul>
   </div>
 </template>
 
 <script>
 import { mapState } from 'vuex'
 
+import * as TV from 'lightweight-charts'
+
 import socket from '../services/socket'
 import Counter from '../utils/counter'
+import { getColor } from '../utils/colors'
 import MultiCounter from '../utils/multiCounter'
+
+import options from './chart/options.json'
+
+const chartOptions = JSON.parse(JSON.stringify(options.chart))
+
+chartOptions.priceScale.position = 'none'
+chartOptions.timeScale.rightOffset = 0
+chartOptions.timeScale.secondsVisible = false
+chartOptions.priceScale.mode = 0
+
+const lineOptions = JSON.parse(JSON.stringify(options.series.line))
+
+lineOptions.overlay = true
+lineOptions.lineWidth = 2
+lineOptions.priceLineVisible = false
+lineOptions.scaleMargins = {
+  top: 0.05,
+  bottom: 0.05,
+}
+
+import { formatAmount } from '../utils/helpers'
 
 /** @type {Counter[]} */
 const counters = []
 
+/** @type {TV.IChartApi} */
+let chart
+
+let colors = []
+
 export default {
   data() {
     return {
+      isCrosshairing: false,
       data: {},
     }
   },
@@ -27,19 +60,21 @@ export default {
   computed: {
     ...mapState('settings', [
       'statsPeriod',
-      'statsGraphs',
+      'statsChart',
       'statsCounters',
       'preferQuoteCurrencySize',
     ]),
     ...mapState('app', ['actives']),
+    colors() {
+      return this.statsCounters.reduce((obj, counter) => {
+        obj[counter.name] = counter.color
+        return obj
+      }, {})
+    },
   },
   created() {
     this.onStoreMutation = this.$store.subscribe((mutation, state) => {
       switch (mutation.type) {
-        case 'settings/SET_STAT_NAME':
-          this.renameCounter(mutation.payload.value)
-          break
-
         case 'settings/TOGGLE_STAT':
           if (mutation.payload.value) {
             this.createCounter(this.statsCounters[mutation.payload.index])
@@ -50,16 +85,40 @@ export default {
 
         case 'settings/SET_STAT_PERIOD':
         case 'settings/SET_STAT_OUTPUT':
+        case 'settings/SET_STAT_SMOOTHING':
           this.refreshCounter(this.statsCounters[mutation.payload.index].name)
+          break
+
+        case 'settings/SET_STAT_NAME':
+          this.renameCounter(mutation.payload.value)
           break
 
         case 'settings/SET_PAIR':
           this.prepareCounters()
           break
+
+        case 'settings/SET_STAT_COLOR':
+          this.recolorCounter(
+            this.statsCounters[mutation.payload.index].name,
+            mutation.payload.value
+          )
+          break
+
+        case 'settings/TOGGLE_STATS_CHART':
+          if (mutation.payload) {
+            this.createChart()
+          } else {
+            this.removeChart()
+          }
+          break
       }
     })
   },
   mounted() {
+    if (this.statsChart) {
+      this.createChart()
+    }
+
     this.prepareCounters()
 
     socket.$on('trades.queued', this.onTrades)
@@ -70,10 +129,49 @@ export default {
     socket.$off('historical', this.onFetch)
 
     this.clearCounters()
+    this.removeChart()
 
     this.onStoreMutation()
   },
   methods: {
+    createChart() {
+      clearTimeout(this._createChartTimeout)
+
+      this._createChartTimeout = setTimeout(() => {
+        chart = TV.createChart(this.$refs.chart, chartOptions)
+
+        for (let i = 0; i < counters.length; i++) {
+          this.createCounterSerie(counters[i]);
+        }
+      }, 100)
+
+      window.getCounters = () => counters
+    },
+    createCounterSerie(counter) {
+      if (counter.serie) {
+        return
+      }
+
+      counter.serie = chart.addLineSeries(
+        Object.assign({}, lineOptions, {
+          color: counter.options.color
+        })
+      )
+    },
+    removeChart() {
+      if (!chart) {
+        return
+      }
+
+      for (let i = 0; i < counters.length; i++) {
+        if (counters[i].serie) {
+          chart.removeSeries(counters[i].serie);
+          delete counters[i].serie
+        }
+      }
+
+      chart.remove()
+    },
     prepareCounters() {
       console.log(`[stats.prepareCounters]`)
       this.clearCounters()
@@ -84,13 +182,37 @@ export default {
     },
     onTrades(trades, stats) {
       for (let i = 0; i < counters.length; i++) {
-        counters[i].onTrades(trades, stats)
+        if (counters[i].stacks.length) {
+          let value = counters[i].getValue()
 
-        this.$set(this.data, counters[i].name, counters[i].getValue())
+          if (value.length) {
+            this.$set(
+              this.data,
+              counters[i].name,
+              value.map((a) => formatAmount(a)).join('/')
+            )
+          } else {
+            if (counters[i].serie) {
+              counters[i].serie.update({
+                time: counters[i].timestamp / 1000,
+                value,
+              })
+            }
+
+            if (!isNaN(counters[i].options.precision)) {
+              value = value.toFixed(counters[i].precision)
+            }
+
+            if (!this.isCrosshairing) {
+              this.$set(this.data, counters[i].name, formatAmount(value))
+            }
+          }
+        }
+        counters[i].onTrades(trades, stats)
       }
     },
-    onFetch(trades, from, to) {
-
+    onFetch() {
+      // not compatible
     },
     clearCounters() {
       for (let i = counters.length - 1; i >= 0; i--) {
@@ -114,6 +236,10 @@ export default {
 
       console.log(`\tunbind counter ${counter.name} index ${index}`)
       counter.unbind()
+
+      if (counter.serie) {
+        chart.removeSeries(counter.serie)
+      }
 
       this.$delete(this.data, counter.name)
 
@@ -139,14 +265,35 @@ export default {
       }
 
       this.removeCounter(counter.name)
-      this.createCounter()
+      this.createCounter(options)
     },
-    createCounter(options) {
-      if (options.enabled && typeof this.data[options.name] === 'undefined') {
-        console.log(`create counter ${options.name}`, options)
+    recolorCounter(index, color) {
+      const counter = this.getCounter(index)
 
-        const outputType = this.getOutputType(options.output)
-        const outputFn = (stats, trades) => eval(options.output)
+      if (!counter) {
+        console.log(`[refreshCounter] couldnt find counter ${index}`)
+        return
+      }
+
+      if (!counter.serie) {
+        return
+      }
+
+      console.log('[recolorCounter]', counter.name, color)
+
+      counter.serie.applyOptions({
+        color: color,
+      })
+    },
+    createCounter(counterOptions) {
+      if (
+        counterOptions.enabled &&
+        typeof this.data[counterOptions.name] === 'undefined'
+      ) {
+        console.log(`create counter ${counterOptions.name}`, counterOptions)
+
+        const outputType = this.getOutputType(counterOptions.output)
+        const outputFn = (stats, trades) => eval(counterOptions.output)
 
         let counter
 
@@ -154,29 +301,33 @@ export default {
           console.log(
             'instanciate counter with model',
             new Array(outputType).fill(0),
-            options.output
+            counterOptions.output
           )
           counter = new MultiCounter(outputFn, {
-            period: options.period,
+            options: counterOptions,
             model: new Array(outputType).fill(0),
           })
         } else {
-          console.log('instanciate single counter', options.output)
+          console.log('instanciate single counter', counterOptions.output)
           counter = new Counter(outputFn, {
-            period: options.period,
+            options: counterOptions
           })
+
+          if (chart) {
+            this.createCounterSerie(counter);
+          }
         }
 
-        counter.name = options.name
+        counter.name = counterOptions.name
 
         counters.push(counter)
 
         this.$set(this.data, counter.name, 0)
       } else {
         console.log(
-          `counter ${options.name} was skipped`,
-          options.enabled ? 'ENABLED' : 'DISABLED',
-          typeof this.data[options.name] !== 'undefined'
+          `counter ${counterOptions.name} was skipped`,
+          counterOptions.enabled ? 'ENABLED' : 'DISABLED',
+          typeof this.data[counterOptions.name] !== 'undefined'
             ? 'ALREADY IN DATA'
             : 'NOT IN DATA'
         )
@@ -281,18 +432,62 @@ export default {
   position: relative;
   background-color: rgba(white, 0.05);
 
-  .custom-stat {
+  &__chart {
+    width: 100%;
+    height: 180px;
+
+    + .stats__counters {
+      position: absolute;
+      margin: .25em;
+
+      .stat-counter {
+        flex-direction: row;
+        padding: 0.25em;
+
+        &__value {
+          text-align: left;
+          flex-grow: 0;
+        }
+
+        &__name {
+          font-size: 12px;
+          margin-left: 1em;
+          order: 2;
+          opacity: 0;
+          transform: translateX(8px);
+          transition: transform .2s $easeOutExpo, opacity .2s $easeOutExpo;
+        }
+
+        &:hover {
+          .stat-counter__name {
+            opacity: 1;
+            transform: none;
+          }
+        }
+      }
+    }
+  }
+
+  &__counters {
+    padding: 0;
+    margin: 0;
+    list-style: none;
+    top: 0;
+    z-index: 11;
+  }
+
+  .stat-counter {
     display: flex;
     align-items: center;
     padding: 0.75em;
     cursor: pointer;
 
-    + .custom-stat {
+    + .stat-counter {
       padding-top: 0;
     }
 
     &__name {
-      opacity: 0.5;
+      color: rgba(white, 0.5);
       letter-spacing: 0.4px;
       transition: opacity 0.2s $easeOutExpo;
     }
@@ -307,7 +502,7 @@ export default {
 
     &:hover {
       .custom-stat__name {
-        opacity: 1;
+        color: white;
       }
     }
   }

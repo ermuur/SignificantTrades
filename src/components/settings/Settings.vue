@@ -216,7 +216,24 @@
           </div>
           <div class="form-group column__fill">
             <div class="column">
-              <div class="form-group column__fill flex-center">Custom stats</div>
+              <div class="form-group column__fill">
+                <input type="text" class="form-control" :value="statsPeriodStringified" placeholder="Period (minutes)" @change="$store.commit('settings/SET_STATS_PERIOD', $event.target.value)">
+              </div>
+              <div class="form-group column__tight">
+                <label
+                  class="checkbox-control checkbox-control-input flex-right"
+                  v-tippy="{ placement: 'bottom' }"
+                  title="Enable graph"
+                >
+                  <input
+                    type="checkbox"
+                    class="form-control"
+                    :checked="statsChart"
+                    @change="$store.commit('settings/TOGGLE_STATS_CHART', $event.target.checked)"
+                  />
+                  <div></div>
+                </label>
+              </div>
               <div class="form-group column__tight">
                 <button class="btn -blue" @click="$store.commit('settings/CREATE_STAT'), $store.dispatch('app/openModal', { name: 'stat', id: statsCounters.length - 1 })">
                   <i class="icon-add mr4"></i> add
@@ -539,7 +556,8 @@ export default {
       'aggregationLag',
       'showCounters',
       'showStats',
-      'statsGraphs',
+      'statsPeriod',
+      'statsChart',
       'statsCounters',
       'preferQuoteCurrencySize',
       'counterPrecision',
@@ -695,12 +713,14 @@ export default {
     width: 100%;
 
     + .app__wrapper {
-      transform: translateX(320px);
+      transform: translateX(-320px);
     }
 
     .stack__scroller {
       width: 320px;
       height: 100%;
+      position: absolute;
+      right: 0;
     }
 
     .stack__wrapper {
