@@ -536,8 +536,9 @@ class Okex extends Exchange {
       )
 
       this.initKeepAlive()
-      this.initPeriodicFuturesRefresh()
-      this.initPeriodicLiquidationsRefresh()
+      this.getProducts('futures').then(() => {
+        this.initPeriodicFuturesRefresh()
+      })
 
       this.emitOpen(event)
     }
@@ -662,7 +663,7 @@ class Okex extends Exchange {
 
     for (let i = 0; i < products.length; i++) {
       if (new RegExp('^' + this.pair.split('-')[0] + 'USD-').test(products[i])) {
-        console.log('add', products[i], 'to liquidatable products')
+        console.log('add', products[i], this.pairs[products[i]], 'to liquidatable products')
         this.liquidatableProducts.push(this.pairs[products[i]])
         this.liquidatableProductsReferences[this.pairs[products[i]]] = now
       }
@@ -690,7 +691,7 @@ class Okex extends Exchange {
     this.productRequest = token.source()
     console.log('getProducts', type);
 
-    axios
+    return axios
       .get(`https://www.okex.com/api/${type}/v3/instruments`)
       .then(response => this.formatProducts(response.data, type))
       .catch(error => {
