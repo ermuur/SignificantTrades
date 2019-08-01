@@ -95,7 +95,7 @@ class Bitfinex extends Exchange {
     this.mapping = pair => {
       if (this.pairs.indexOf(pair) !== -1) {
         return pair;
-      } 
+      }
 
       return false;
     }
@@ -106,7 +106,7 @@ class Bitfinex extends Exchange {
 	}
 
 	connect(pair) {
-    if (!super.connect(pair))  
+    if (!super.connect(pair))
       return;
 
     this.api = new WebSocket(this.getUrl());
@@ -114,11 +114,20 @@ class Bitfinex extends Exchange {
 		this.api.on('message', event => this.emitData(this.format(event)));
 
 		this.api.on('open', event => {
+      this.channels = {};
+      this.hasReceivedFirstPacket = {};
+
       this.api.send(JSON.stringify({
         event: 'subscribe',
         channel: 'trades',
         symbol: 't' + this.pair,
       }));
+
+      this.api.send(JSON.stringify({
+        event: 'subscribe',
+        channel: 'status',
+        key: 'liq:global'
+      }))
 
       this.emitOpen(event);
     });
@@ -129,7 +138,7 @@ class Bitfinex extends Exchange {
 	}
 
 	disconnect() {
-    if (!super.disconnect())  
+    if (!super.disconnect())
       return;
 
     if (this.api && this.api.readyState < 2) {
@@ -138,18 +147,58 @@ class Bitfinex extends Exchange {
 	}
 
 	format(event) {
-		const json = JSON.parse(event);
+    const json = JSON.parse(event);
 
-    if (!json || json[1] !== 'te') {
+    if (json.event) {
+      this.channels[json.chanId] = json.channel
       return;
     }
 
-    return [[
-      +new Date(json[2][1]),
-      +json[2][3],
-      Math.abs(json[2][2]),
-      json[2][2] < 0 ? 0 : 1
-    ]];
+    if (!this.channels[json[0]] || json[1] === 'hb') {
+      return;
+    }
+
+    if (!this.hasReceivedFirstPacket[json[0]]) {
+      this.hasReceivedFirstPacket[json[0]] = true;
+      return
+    }
+
+    switch (this.channels[json[0]]) {
+      case 'trades':
+        if (json[1] === 'te') {
+          this.price = +json[2][3];
+
+          return [[
+            +new Date(json[2][1]),
+            +json[2][3],
+            Math.abs(json[2][2]),
+            json[2][2] < 0 ? 0 : 1
+          ]];
+        }
+      break;
+      case 'status':
+        console.log('status payload', json[1], JSON.stringify(json[1].filter(a => a[4] === 't' + this.pair).map(a => [
+          parseInt(a[2]),
+          this.price,
+          Math.abs(a[5]),
+          +a[5],
+          a[5] > 1 ? 1 : 0,
+          1
+        ])));
+
+        return json[1].filter(a => a[4] === 't' + this.pair).map(a => [
+          parseInt(a[2]),
+          this.price,
+          Math.abs(a[5]),
+          +a[5],
+          a[5] > 1 ? 1 : 0,
+          1
+        ])
+      break;
+      default:
+        console.log('unknown channel', json[2]);
+      break;
+    }
 	}
 
 }

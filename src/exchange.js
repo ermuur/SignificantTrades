@@ -8,6 +8,7 @@ class Exchange extends EventEmitter {
 
 		this.connected = false;
 		this.reconnectionDelay = 5000;
+		this.baseReconnectionDelay = this.reconnectionDelay;
 
 		this.options = Object.assign({
 			// default exchanges options
@@ -64,7 +65,7 @@ class Exchange extends EventEmitter {
 			}
 		}, this.reconnectionDelay);
 
-		this.reconnectionDelay *= 2;
+		this.reconnectionDelay = Math.min(1000 * 60 * 2, this.reconnectionDelay * 1.5);
 	}
 
 	emitOpen(event) {
@@ -72,7 +73,7 @@ class Exchange extends EventEmitter {
 
 		this.connected = true;
 
-		this.reconnectionDelay = 5000;
+		this.reconnectionDelay = this.baseReconnectionDelay;
 
 		this.emit('open', event);
 	}
@@ -102,12 +103,8 @@ class Exchange extends EventEmitter {
 		this.emit('data', {
 			exchange: this.id,
 			data: Object.keys(group).map(id => {
-				const stacked = group[id][2].map(a => a);
-
 				group[id][1] = (group[id][1].map((price, index) => price * group[id][2][index]).reduce((a, b) => a + b) / group[id][1].length) / (group[id][2].reduce((a, b) => a + b) / group[id][2].length);
 				group[id][2] = group[id][2].reduce((a, b) => a + b);
-
-				const firstDigitIndex = group[id][2].toFixed(8).match(/[1-9]/);
 
 				group[id][1] = this.toFixed(group[id][1], 10);
 				group[id][2] = this.toFixed(group[id][2], 10);

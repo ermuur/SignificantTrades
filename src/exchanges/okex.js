@@ -744,8 +744,6 @@ class Okex extends Exchange {
 
         this.liquidatableProductsReferences[instrumentId] = +new Date(liquidations[0].created_at)
 
-        console.log('sending', liquidations.length, 'okex liquidations');
-
         this.emitData(
           liquidations.map(trade => {
             const timestamp = +new Date(trade.created_at)
