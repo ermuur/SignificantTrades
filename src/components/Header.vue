@@ -135,6 +135,9 @@
     .header__title {
       width: 100%;
       padding: 10px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
 
       sup {
         line-height: 0;

@@ -391,7 +391,7 @@
 
       @each $exchange in $exchanges {
         .-#{$exchange} .trades__item__exchange {
-          background-image: url('static/exchanges/#{$exchange}.svg');
+          background-image: url('../../static/exchanges/#{$exchange}.svg');
         }
       }
     }
@@ -472,7 +472,7 @@
 
       @each $exchange in $exchanges {
         &.-#{$exchange} .trades__item__message {
-          background-image: url('static/exchanges/#{$exchange}.svg');
+          background-image: url('../../static/exchanges/#{$exchange}.svg');
         }
       }
     }
