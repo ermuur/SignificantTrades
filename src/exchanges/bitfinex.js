@@ -190,7 +190,6 @@ class Bitfinex extends Exchange {
           parseInt(a[2]),
           this.price,
           Math.abs(a[5]),
-          +a[5],
           a[5] > 1 ? 1 : 0,
           1
         ])
