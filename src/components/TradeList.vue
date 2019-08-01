@@ -1,5 +1,5 @@
 <template>
-  <div class="trades" :class="{ '-compact': compactRows }">
+  <div class="trades" :class="{ '-compact': compactRows, '-logos': this.showLogos }">
     <ul v-if="trades.length">
       <li v-for="trade in trades" class="trades__item" :key="trade.id" :class="trade.classname" :style="{ 'background-image': trade.image, 'background-color': trade.background, 'color': trade.foreground }">
         <template v-if="trade.message">
@@ -9,7 +9,7 @@
         </template>
         <template v-else>
           <div class="trades__item__side icon-side"></div>
-          <div class="trades__item__exchange">{{ trade.exchange }}</div>
+          <div class="trades__item__exchange" :title="trade.exchange">{{ trade.exchange }}</div>
           <div class="trades__item__price"><span class="icon-currency"></span> <span v-html="trade.price"></span></div>
           <div class="trades__item__amount">
             <span class="trades__item__amount__fiat"><span class="icon-currency"></span> <span v-html="trade.amount"></span></span>
@@ -19,7 +19,7 @@
         </template>
       </li>
     </ul>
-    <div v-else class="trades__item trades__item--empty">
+    <div v-else class="trades__item -empty">
       Nothing to show, yet.
     </div>
   </div>
@@ -39,7 +39,8 @@
       }
     },
     computed: {
-      compactRows: () => options.compactRows
+      compactRows: () => options.compactRows,
+      showLogos: () => options.showLogos
     },
     created() {
       this.getGifs();
@@ -130,7 +131,7 @@
             this.sfx && !silent && this.sfx.liquidation();
 
             if (size >= options.threshold * (trade[0] === 'bitmex' ? 1 : .75)) {
-              this.appendRow(trade, ['liquidation'], `${app.getAttribute('data-symbol')}<strong>${formatAmount(size, 1)}</strong> liq'd <strong>${trade[4] > 0 ? 'SHORT' : 'LONG'}</strong> <small>@ ${app.getAttribute('data-symbol')}${formatPrice(trade[2])}${trade[0] !== 'bitmex' ? ' (' + trade[0] + ')' : ''}</small>`);
+              this.appendRow(trade, ['liquidation'], `${app.getAttribute('data-symbol')}<strong>${formatAmount(size, 1)}</strong> liquidated <strong>${trade[4] > 0 ? 'SHORT' : 'LONG'}</strong> <small>@ ${app.getAttribute('data-symbol')}${formatPrice(trade[2])}</small>`);
             }
             continue;
           }
@@ -180,6 +181,8 @@
         let amount = trade[2] * trade[3];
         let color = this.getTradeColor(trade);
 
+        classname.push(trade[0]);
+
         if (trade[4] > 0) {
           classname.push('buy');
         } else {
@@ -221,7 +224,7 @@
           exchange: trade[0],
           price: formatPrice(trade[2]),
           amount: amount,
-          classname: classname.map(a => 'trades__item--' + a).join(' '),
+          classname: classname.map(a => '-' + a).join(' '),
           icon: icon,
           date: this.ago(trade[1]),
           timestamp: trade[1],
@@ -375,6 +378,24 @@
       flex-flow: column nowrap;
     }
 
+    &.-logos {
+      .trades__item__side {
+        margin: 0;
+      }
+
+      .trades__item__exchange {
+        text-indent: -9999px;
+        flex-basis: 3em;
+        flex-grow: 0;
+      }
+
+      @each $exchange in $exchanges {
+        .-#{$exchange} .trades__item__exchange {
+          background-image: url('/static/exchanges/#{$exchange}.svg');
+        }
+      }
+    }
+
     &.-compact {
       font-size: .80em;
 
@@ -408,7 +429,7 @@
       pointer-events: none;
     }
 
-    &.trades__item--empty {
+    &.-empty {
       justify-content: center;
       padding: 20px;
       font-size: 80%;
@@ -418,27 +439,45 @@
       }
     }
 
-    &.trades__item--sell {
+    &.-sell {
       .icon-side:before {
         content: unicode($icon-down);
       }
     }
 
-    &.trades__item--buy {
+    &.-buy {
       .icon-side:before {
         content: unicode($icon-up);
       }
     }
 
-    &.trades__item--significant {
+    &.-significant {
       font-size: .92em;
     }
 
-    &.trades__item--liquidation {
+    &.-liquidation {
       background-color: $pink !important;
+
+      .trades__item__message {
+        background-repeat: no-repeat;
+      }
+
+      .trades__item__side {
+        margin-right: .25em;
+      }
+
+      .trades__item__message {
+        padding-left: 13px;
+      }
+
+      @each $exchange in $exchanges {
+        &.-#{$exchange} .trades__item__message {
+          background-image: url('/static/exchanges/#{$exchange}.svg');
+        }
+      }
     }
 
-    &.trades__item--huge {
+    &.-huge {
       font-size: 1em;
       padding: .4em .5em;
 
@@ -457,7 +496,7 @@
       }
     }
 
-    &.trades__item--rare {
+    &.-rare {
       padding: 10px 7px;
       box-shadow: 0 0 20px rgba(red, .5);
       z-index: 1;
@@ -473,15 +512,18 @@
 
       &.trades__item__side {
         flex-grow: 0;
-        flex-basis: 1.14em;
+        flex-basis: auto;
         font-size: 1.22em;
+        margin-right: .5em;
 
         + .trades__item__message {
-          margin-left: 7px;
+          padding-left: 7px;
         }
       }
 
       &.trades__item__exchange {
+        background-repeat: no-repeat;
+        background-position: center center;
         flex-grow: .75;
 
         small {

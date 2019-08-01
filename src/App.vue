@@ -73,8 +73,11 @@
         const settingsVersion = parseFloat((localStorage.getItem('version') || '').replace('.', '#').replace(/\./g, '').replace('#', '.')) || 0;
 
         if (settingsVersion < 1.43 && settings['exchanges']) {
-          console.log('set exchanges to [] (previous was', settings['exchanges'], ')');
           settings['exchanges'] = [];
+        }
+
+        if (settingsVersion < 1.431 && Array.isArray(settings['exchanges']) && settings['exchanges'].indexOf('bybit') === -1) {
+          settings['exchanges'].push('bybit')
         }
 
         for (let name of Object.keys(settings)) {

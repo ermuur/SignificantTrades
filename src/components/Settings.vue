@@ -16,6 +16,13 @@
             <div></div>
           </label>
         </div>
+        <div class="form-group">
+          <label>&nbsp;</label>
+          <label class="checkbox-control flex-right" v-tippy title="Show exchange's logos">
+            <input type="checkbox" class="form-control" v-model="options.showLogos">
+            <div></div>
+          </label>
+        </div>
       </div>
       <div class="mt8 settings__title" v-on:click="toggleSection('chart')" v-bind:class="{closed: options.settings.indexOf('chart') > -1}">Chart <i class="icon-up"></i></div>
       <div>
@@ -586,22 +593,23 @@
     .settings__list {
       align-items: center;
 
-      .form-group:first-child {
-        flex-grow: 1;
-        flex-basis: auto;
-        max-width: none;
-      }
-
-      .form-group:last-child {
+      .form-group {
         flex-grow: 0;
         flex-basis: auto;
         position: relative;
 
-        > label:first-child:before {
-          content: 'Compact';
-          position: absolute;
-          right: 0;
+        &:first-child {
+          flex-grow: 1;
+          flex-basis: auto;
+          max-width: none;
         }
+      }
+
+      .form-group:last-child > label:first-child:before {
+        content: 'Compact | Logos';
+        position: absolute;
+        right: 0;
+        white-space: nowrap;
       }
     }
 
