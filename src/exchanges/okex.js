@@ -593,6 +593,12 @@ class Okex extends Exchange {
   }
 
   formatProducts(response, type) {
+    for (let name in this.pairs) {
+      if (this.pairs.hasOwnProperty(name) && /\-/.test(name)) {
+        delete this.pairs[name]
+      }
+    }
+
     response.forEach(product => {
       const pair = (
         (product.base_currency ? product.base_currency : product.underlying_index) +
