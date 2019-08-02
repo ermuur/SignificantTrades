@@ -640,6 +640,10 @@ class Okex extends Exchange {
       +new Date(`${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()} 16:00:00+08:00`) -
       +new Date() + 1000 * 60 * 3
 
+    if (msUntilExpiration < 0) {
+      msUntilExpiration += 1000 * 60 * 60 * 24 * 7
+    }
+
     console.log('will expire after', msUntilExpiration, 'ms')
 
     const setupTimer = () => {
